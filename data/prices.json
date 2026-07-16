@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-16T00:00:00Z",
-  "source": "대기중 (첫 수집 전)",
+  "generatedAt": "2026-07-16T04:39:15.045Z",
+  "source": "SerpApi Google Flights",
   "currency": "KRW",
   "priceBasis": "per-person",
   "routes": [
@@ -19,9 +19,53 @@
       "currency": "KRW",
       "active": true,
       "memo": "추석 연휴 직전, 목표가 도달 시 즉시 예매",
-      "prices": [],
-      "insights": null,
-      "bestFlights": []
+      "prices": [
+        {
+          "date": "2026-07-16",
+          "price": 358000,
+          "source": "Google Flights"
+        }
+      ],
+      "insights": {
+        "lowest": 358000,
+        "level": "typical",
+        "typicalLow": 210000,
+        "typicalHigh": 360000
+      },
+      "bestFlights": [
+        {
+          "price": 358000,
+          "airline": "에어프레미아",
+          "departTime": "2026-09-10 13:50",
+          "arriveTime": "2026-09-10 16:30",
+          "duration": 160,
+          "stops": 0
+        },
+        {
+          "price": 360100,
+          "airline": "에어서울",
+          "departTime": "2026-09-10 08:10",
+          "arriveTime": "2026-09-10 10:40",
+          "duration": 150,
+          "stops": 0
+        },
+        {
+          "price": 360684,
+          "airline": "이스타항공",
+          "departTime": "2026-09-10 07:25",
+          "arriveTime": "2026-09-10 09:50",
+          "duration": 145,
+          "stops": 0
+        },
+        {
+          "price": 370100,
+          "airline": "에어서울",
+          "departTime": "2026-09-10 09:20",
+          "arriveTime": "2026-09-10 11:50",
+          "duration": 150,
+          "stops": 0
+        }
+      ]
     },
     {
       "id": "icn-kix-2026-10",
@@ -38,9 +82,53 @@
       "currency": "KRW",
       "active": true,
       "memo": "개천절 연휴 2인",
-      "prices": [],
-      "insights": null,
-      "bestFlights": []
+      "prices": [
+        {
+          "date": "2026-07-16",
+          "price": 412404,
+          "source": "Google Flights"
+        }
+      ],
+      "insights": {
+        "lowest": 412404,
+        "level": "typical",
+        "typicalLow": 175000,
+        "typicalHigh": 415000
+      },
+      "bestFlights": [
+        {
+          "price": 412404,
+          "airline": "에어부산",
+          "departTime": "2026-10-03 14:50",
+          "arriveTime": "2026-10-03 17:00",
+          "duration": 130,
+          "stops": 0
+        },
+        {
+          "price": 419904,
+          "airline": "피치항공",
+          "departTime": "2026-10-03 14:40",
+          "arriveTime": "2026-10-03 16:30",
+          "duration": 110,
+          "stops": 0
+        },
+        {
+          "price": 419904,
+          "airline": "피치항공",
+          "departTime": "2026-10-03 20:55",
+          "arriveTime": "2026-10-03 22:45",
+          "duration": 110,
+          "stops": 0
+        },
+        {
+          "price": 448604,
+          "airline": "진에어",
+          "departTime": "2026-10-03 16:10",
+          "arriveTime": "2026-10-03 18:05",
+          "duration": 115,
+          "stops": 0
+        }
+      ]
     },
     {
       "id": "icn-dad-2026-11",
@@ -57,9 +145,53 @@
       "currency": "KRW",
       "active": true,
       "memo": "가을 휴가",
-      "prices": [],
-      "insights": null,
-      "bestFlights": []
+      "prices": [
+        {
+          "date": "2026-07-16",
+          "price": 365939,
+          "source": "Google Flights"
+        }
+      ],
+      "insights": {
+        "lowest": 365939,
+        "level": "high",
+        "typicalLow": 195000,
+        "typicalHigh": 340000
+      },
+      "bestFlights": [
+        {
+          "price": 365939,
+          "airline": "제주항공",
+          "departTime": "2026-11-15 10:05",
+          "arriveTime": "2026-11-15 13:20",
+          "duration": 315,
+          "stops": 0
+        },
+        {
+          "price": 435241,
+          "airline": "비엣젯항공",
+          "departTime": "2026-11-15 07:00",
+          "arriveTime": "2026-11-15 10:05",
+          "duration": 305,
+          "stops": 0
+        },
+        {
+          "price": 457700,
+          "airline": "베트남항공",
+          "departTime": "2026-11-15 00:30",
+          "arriveTime": "2026-11-15 03:35",
+          "duration": 305,
+          "stops": 0
+        },
+        {
+          "price": 471039,
+          "airline": "Trinity Airways",
+          "departTime": "2026-11-15 19:00",
+          "arriveTime": "2026-11-15 22:20",
+          "duration": 320,
+          "stops": 0
+        }
+      ]
     }
   ]
 }
