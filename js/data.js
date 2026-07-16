@@ -54,18 +54,37 @@ function routeStats(route) {
            hitTarget, prices, vsMinPct, progress };
 }
 
-// "지금 살 때인가" 판정 문구
+// Google Price Insights 레벨 → 배지
+function priceLevel(route) {
+  const lvl = route.insights?.level;
+  if (lvl === "low") return { text: "구글: 저렴한 편", tone: "down", badge: "badge-hit" };
+  if (lvl === "high") return { text: "구글: 비싼 편", tone: "up", badge: "badge-off" };
+  if (lvl === "typical") return { text: "구글: 보통 수준", tone: "neutral", badge: "badge-active" };
+  return null;
+}
+
+// "지금 살 때인가" 판정 문구 — 구글 인사이트가 있으면 우선 반영
 function buySignal(stats, route) {
   if (stats.current == null) return { text: "데이터 없음", tone: "neutral" };
   if (stats.hitTarget) return { text: "🎯 목표가 도달! 예매 추천", tone: "down" };
+  const lvl = route.insights?.level;
+  if (lvl === "low") return { text: "👍 구글 기준 저렴한 시기", tone: "down" };
+  if (lvl === "high") return { text: "가격이 비싼 편, 관망", tone: "up" };
   if (stats.vsMinPct <= 3) return { text: "👍 역대 최저가 근접", tone: "down" };
   if (stats.deltaFromAvg < 0) return { text: "평균보다 저렴", tone: "down" };
   if (stats.deltaFromPrev > 0) return { text: "가격 상승 중, 관망", tone: "up" };
   return { text: "평균 수준", tone: "neutral" };
 }
 
+// 소요시간(분) → "2시간 30분"
+function fmtDuration(min) {
+  if (min == null) return "";
+  const h = Math.floor(min / 60), m = min % 60;
+  return `${h ? h + "시간 " : ""}${m}분`;
+}
+
 function getRouteById(data, id) {
   return (data.routes || []).find((r) => r.id === id) || null;
 }
 
-window.FlightData = { loadData, won, shortDate, routeStats, buySignal, getRouteById };
+window.FlightData = { loadData, won, shortDate, routeStats, buySignal, priceLevel, fmtDuration, getRouteById };

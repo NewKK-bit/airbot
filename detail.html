@@ -42,6 +42,28 @@
     const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
     const deltaIco = s.deltaFromPrev < 0 ? ICONS.down : s.deltaFromPrev > 0 ? ICONS.up : "";
 
+    // 추천 항공편 (SerpApi가 수집한 실제 편, 가격순)
+    const best = route.bestFlights || [];
+    const recoHtml = best.length ? `
+      <div class="card" style="padding:20px;margin-bottom:24px">
+        <div class="section-head" style="margin-bottom:12px">
+          <h2 style="font-size:1.1rem">✈️ 추천 항공편</h2>
+          <span class="sub">Google Flights 최근 수집 · 가격순</span>
+        </div>
+        <div style="overflow-x:auto"><table class="ptable">
+          <thead><tr><th>항공사</th><th>출발</th><th>도착</th><th>소요</th><th>경유</th><th>가격</th></tr></thead>
+          <tbody>${best.map((o) => `<tr>
+            <td style="font-weight:600">${o.airline || "-"}</td>
+            <td>${o.departTime || "-"}</td>
+            <td>${o.arriveTime || "-"}</td>
+            <td>${FlightData.fmtDuration(o.duration) || "-"}</td>
+            <td>${o.stops === 0 ? '<span class="src-tag" style="color:var(--down)">직항</span>' : o.stops + "회 경유"}</td>
+            <td style="font-weight:800">${FlightData.won(o.price)}</td>
+          </tr>`).join("")}</tbody>
+        </table></div>
+        <p class="sub" style="margin-top:10px;font-size:.8rem;color:var(--text-3)">가격은 최근 수집 시점 기준입니다. '예약하기'로 현재가를 확인하세요.</p>
+      </div>` : "";
+
     content.innerHTML = `
       <div class="section-head" style="margin-top:6px">
         <div>
@@ -76,6 +98,8 @@
           <span class="li"><span class="sw dot" style="background:var(--blue-500)"></span>관측 시점 (마우스 오버)</span>
         </div>
       </div>
+
+      ${recoHtml}
 
       <div class="card" style="padding:0;overflow:hidden">
         <div style="padding:18px 20px 6px"><h2 style="font-size:1.1rem">가격 기록</h2></div>

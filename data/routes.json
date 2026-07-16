@@ -1,0 +1,53 @@
+{
+  "//": "감시할 노선 목록. 여기만 편집하면 GitHub Actions가 매일 SerpApi(구글플라이트)로 실가격을 수집해 prices.json을 갱신합니다.",
+  "routes": [
+    {
+      "id": "icn-nrt-2026-09",
+      "name": "서울 → 도쿄",
+      "origin": "ICN",
+      "destination": "NRT",
+      "departDate": "2026-09-10",
+      "returnDate": "2026-09-17",
+      "tripType": "round",
+      "passengers": 1,
+      "direct": true,
+      "departTime": "morning",
+      "targetPrice": 350000,
+      "currency": "KRW",
+      "active": true,
+      "memo": "추석 연휴 직전, 목표가 도달 시 즉시 예매"
+    },
+    {
+      "id": "icn-kix-2026-10",
+      "name": "서울 → 오사카",
+      "origin": "ICN",
+      "destination": "KIX",
+      "departDate": "2026-10-03",
+      "returnDate": "2026-10-06",
+      "tripType": "round",
+      "passengers": 2,
+      "direct": true,
+      "departTime": "any",
+      "targetPrice": 300000,
+      "currency": "KRW",
+      "active": true,
+      "memo": "개천절 연휴 2인"
+    },
+    {
+      "id": "icn-dad-2026-11",
+      "name": "서울 → 다낭",
+      "origin": "ICN",
+      "destination": "DAD",
+      "departDate": "2026-11-15",
+      "returnDate": "2026-11-20",
+      "tripType": "round",
+      "passengers": 2,
+      "direct": true,
+      "departTime": "any",
+      "targetPrice": 400000,
+      "currency": "KRW",
+      "active": true,
+      "memo": "가을 휴가"
+    }
+  ]
+}
