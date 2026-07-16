@@ -47,9 +47,12 @@
         <div>
           <div class="route-path" style="font-size:1.6rem"><span>${airportLabel(route.origin)}</span>
             <span class="plane">${ICONS.plane}</span><span>${airportLabel(route.destination)}</span></div>
-          <div class="route-sub">${route.name} · ${route.departDate}${route.returnDate ? " ~ " + route.returnDate : ""} · 성인 ${route.passengers || 1}명${route.direct ? " · 직항" : ""}</div>
+          <div class="route-sub">${route.name} · ${route.departDate}${route.returnDate ? " ~ " + route.returnDate : ""} · 성인 ${route.passengers || 1}명${route.direct ? " · 직항" : ""}${route.departTime && route.departTime !== "any" ? " · " + DeepLink.bandOf(route.departTime).label : ""}</div>
         </div>
-        <button class="btn btn-primary" id="reSearch">${ICONS.search} 지금 다시 검색</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="reSearch">${ICONS.search} 지금 다시 검색</button>
+          <button class="btn btn-accent" id="bookBtn">${ICONS.external} 예약하기</button>
+        </div>
       </div>
 
       ${route.memo ? `<div class="card" style="padding:14px 18px;margin-bottom:20px;color:var(--text-2)">📝 ${route.memo}</div>` : ""}
@@ -102,11 +105,15 @@
         <td class="${cls}">${txt}</td><td><span class="src-tag">${r.source || "-"}</span></td></tr>`;
     }).join("");
 
-    // 재검색
+    // 재검색 / 예약
+    const q = DeepLink.routeToQuery(route);
     $("reSearch").addEventListener("click", () => {
-      const q = DeepLink.routeToQuery(route);
-      DeepLink.PROVIDERS.forEach((p, i) => setTimeout(() => window.open(p.build(q), "_blank", "noopener"), i * 120));
-      toast("✈️ 전체 사이트 재검색을 열었어요");
+      openLinks(DeepLink.PROVIDERS.map((p) => p.build(q)), { background: true });
+      toast("✈️ 전체 사이트 재검색 중 (백그라운드 탭)");
+    });
+    $("bookBtn").addEventListener("click", () => {
+      openTab(DeepLink.bookingLink(q), false);
+      toast(`🎫 ${DeepLink.BOOKING_PROVIDER.label} 예약 페이지로 이동`);
     });
   })();
   </script>

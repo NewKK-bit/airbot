@@ -13,6 +13,7 @@
       "tripType": "round",
       "passengers": 1,
       "direct": true,
+      "departTime": "morning",
       "airlines": ["대한항공", "진에어"],
       "targetPrice": 350000,
       "currency": "KRW",

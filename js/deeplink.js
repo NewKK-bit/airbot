@@ -10,7 +10,18 @@
  * @property {"round"|"oneway"} tripType
  * @property {number} passengers   성인 인원수
  * @property {boolean} direct       직항만
+ * @property {string} [departTime]  출발 시간대 밴드 id (TIME_BANDS 참고)
  */
+
+// 출발 시간대 밴드. nl = Google Flights 자연어 쿼리에 붙는 문구, kayak = 카약 takeoff 필터(분).
+const TIME_BANDS = [
+  { id: "any",       label: "상관없음",     nl: "",                            kayak: null },
+  { id: "dawn",      label: "새벽 00–06",   nl: "departing between midnight and 6am", kayak: "0,360" },
+  { id: "morning",   label: "오전 06–12",   nl: "departing in the morning",    kayak: "360,720" },
+  { id: "afternoon", label: "오후 12–18",   nl: "departing in the afternoon",  kayak: "720,1080" },
+  { id: "evening",   label: "저녁 18–24",   nl: "departing in the evening",    kayak: "1080,1440" },
+];
+const bandOf = (id) => TIME_BANDS.find((b) => b.id === id) || TIME_BANDS[0];
 
 // 날짜 포맷 헬퍼
 const pad = (n) => String(n).padStart(2, "0");
@@ -39,12 +50,14 @@ function skyscanner(q) {
   return `https://www.skyscanner.co.kr/transport/flights/${path}?${params.toString()}`;
 }
 
-/** Google Flights 딥링크 (자연어 쿼리 방식 — 가장 안정적) */
+/** Google Flights 딥링크 (자연어 쿼리 방식 — 시간대까지 안정적으로 반영) */
 function googleFlights(q) {
   let text = `Flights from ${q.origin} to ${q.destination} on ${q.departDate}`;
   if (q.tripType === "round" && q.returnDate) text += ` returning ${q.returnDate}`;
   if (q.passengers > 1) text += ` for ${q.passengers} adults`;
   if (q.direct) text += ` nonstop`;
+  const band = bandOf(q.departTime);
+  if (band.nl) text += ` ${band.nl}`;
   return `https://www.google.com/travel/flights?q=${encodeURIComponent(text)}`;
 }
 
@@ -82,6 +95,10 @@ const PROVIDERS = [
   { id: "kayak",      label: "카약", color: "#ff690f", build: kayak },
 ];
 
+// 대표 예약 사이트 — "예약하기" 버튼이 단일 탭으로 곧장 예약 흐름으로 보냄
+const BOOKING_PROVIDER = { id: "skyscanner", label: "Skyscanner", build: skyscanner };
+function bookingLink(q) { return BOOKING_PROVIDER.build(q); }
+
 /** 특정 노선(route 객체)을 SearchQuery로 변환 */
 function routeToQuery(route) {
   return {
@@ -92,8 +109,13 @@ function routeToQuery(route) {
     tripType: route.tripType || (route.returnDate ? "round" : "oneway"),
     passengers: route.passengers || 1,
     direct: !!route.direct,
+    departTime: route.departTime || "any",
   };
 }
 
 // 브라우저 전역으로 노출
-window.DeepLink = { PROVIDERS, routeToQuery, build: { skyscanner, googleFlights, naver, kayak } };
+window.DeepLink = {
+  PROVIDERS, TIME_BANDS, BOOKING_PROVIDER, bandOf,
+  routeToQuery, bookingLink,
+  build: { skyscanner, googleFlights, naver, kayak },
+};

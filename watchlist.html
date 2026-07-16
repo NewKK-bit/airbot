@@ -117,13 +117,18 @@
         <div class="rc-foot">
           <a class="btn btn-ghost" href="detail.html?id=${encodeURIComponent(route.id)}">${ICONS.chart} 추이</a>
           <button class="btn btn-primary rc-search">${ICONS.search} 재검색</button>
-        </div>`;
+        </div>
+        <button class="btn btn-accent rc-book" style="width:100%;justify-content:center">${ICONS.external} ${DeepLink.BOOKING_PROVIDER.label}에서 예약하기</button>`;
       card.querySelector(".sparkholder").append(
         Chart.sparkline(s.prices.map((p) => p.price), { color: s.hitTarget ? "var(--down)" : "var(--blue-500)" }));
+      const q = DeepLink.routeToQuery(route);
       card.querySelector(".rc-search").addEventListener("click", () => {
-        const q = DeepLink.routeToQuery(route);
-        DeepLink.PROVIDERS.forEach((p, i) => setTimeout(() => window.open(p.build(q), "_blank", "noopener"), i * 120));
-        toast(`✈️ ${route.name} 재검색을 열었어요`);
+        openLinks(DeepLink.PROVIDERS.map((p) => p.build(q)), { background: true });
+        toast(`✈️ ${route.name} 전체 사이트 재검색 중 (백그라운드 탭)`);
+      });
+      card.querySelector(".rc-book").addEventListener("click", () => {
+        openTab(DeepLink.bookingLink(q), false);   // 예약은 바로 앞 탭으로
+        toast(`🎫 ${route.name} 예약 페이지로 이동`);
       });
       return card;
     }

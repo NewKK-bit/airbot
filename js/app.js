@@ -69,6 +69,32 @@ function toast(msg, ms = 2600) {
 }
 window.toast = toast;
 
+/* ---------- 탭 열기 (백그라운드 지원) ----------
+   window.open 반복은 새 탭이 앞으로 튀어나오고 팝업 차단에 걸리기 쉬움.
+   합성 Ctrl/⌘+클릭으로 링크를 열면 브라우저가 "백그라운드 새 탭"으로 처리해
+   사용자는 AirBot 화면에 그대로 머문다. */
+function openTab(url, background = true) {
+  const a = document.createElement("a");
+  a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  if (background) {
+    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || "");
+    a.dispatchEvent(new MouseEvent("click", {
+      bubbles: true, cancelable: true, view: window,
+      ctrlKey: !isMac, metaKey: isMac,
+    }));
+  } else {
+    a.click();
+  }
+  a.remove();
+}
+// 한 번의 사용자 클릭 안에서 동기적으로 열어야 팝업 차단·포커스 이동을 피함
+function openLinks(urls, { background = true } = {}) {
+  urls.forEach((u) => openTab(u, background));
+}
+window.openTab = openTab;
+window.openLinks = openLinks;
+
 /* ---------- 공항 자동완성 ---------- */
 let AIRPORTS = [];
 async function loadAirports() {

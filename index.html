@@ -55,8 +55,15 @@
               <option value="4">성인 4명</option>
             </select>
           </div>
+          <div class="field" style="max-width:150px">
+            <label>출발 시간대</label>
+            <select id="departTime"></select>
+          </div>
           <label class="checkbox"><input type="checkbox" id="direct"> 직항만 보기</label>
         </div>
+        <p class="sub" style="margin-top:8px;font-size:.8rem;color:var(--text-3)">
+          💡 시간대는 Google Flights 검색에 자동 반영됩니다. 다른 사이트는 결과 화면에서 필터로 걸러주세요.
+        </p>
 
         <div class="provider-select">
           <div class="lbl">검색할 사이트</div>
@@ -124,6 +131,10 @@
       [originI.dataset.code, destI.dataset.code] = [destI.dataset.code || "", originI.dataset.code || ""];
     });
 
+    // 출발 시간대 옵션 채우기 (단일 소스: DeepLink.TIME_BANDS)
+    $("departTime").innerHTML = DeepLink.TIME_BANDS
+      .map((b) => `<option value="${b.id}">${b.label}</option>`).join("");
+
     // 사이트 선택 칩
     const selected = new Set(DeepLink.PROVIDERS.map((p) => p.id));
     const chipsWrap = $("providerChips");
@@ -155,12 +166,13 @@
         departDate: $("departDate").value,
         returnDate: tripType === "round" ? $("returnDate").value : undefined,
         tripType, passengers: Number($("passengers").value), direct: $("direct").checked,
+        departTime: $("departTime").value,
       };
       if (!q.departDate) return toast("가는 날을 선택하세요");
 
       const providers = DeepLink.PROVIDERS.filter((p) => selected.has(p.id));
-      providers.forEach((p, i) => setTimeout(() => window.open(p.build(q), "_blank", "noopener"), i * 120));
-      toast(`✈️ ${providers.length}개 사이트에서 검색을 열었어요`);
+      openLinks(providers.map((p) => p.build(q)), { background: true });
+      toast(`✈️ ${providers.length}개 사이트를 백그라운드 탭에서 검색 중`);
     });
 
     // 관심 노선 미리보기 (상위 3개)

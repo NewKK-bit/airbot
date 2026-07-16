@@ -51,6 +51,16 @@ async function queryAll(dbId) {
   return results;
 }
 
+// Notion "출발시간대" 선택값 → 앱 밴드 id
+const TIME_MAP = { "상관없음": "any", "새벽": "dawn", "오전": "morning", "오후": "afternoon", "저녁": "evening" };
+const BAND_IDS = ["any", "dawn", "morning", "afternoon", "evening"];
+function parseDepartTime(raw) {
+  if (!raw) return "any";
+  if (TIME_MAP[raw]) return TIME_MAP[raw];
+  if (BAND_IDS.includes(raw)) return raw;
+  return "any";
+}
+
 function parseRoute(page) {
   const p = page.properties;
   return {
@@ -64,6 +74,7 @@ function parseRoute(page) {
     tripType: (P.select(p["여정"]) === "편도" ? "oneway" : "round"),
     passengers: P.number(p["인원"]) || 1,
     direct: P.check(p["직항"]),
+    departTime: parseDepartTime(P.select(p["출발시간대"])),
     airlines: P.multi(p["항공사"]),
     targetPrice: P.number(p["목표가"]),
     currency: P.select(p["통화"]) || "KRW",
