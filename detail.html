@@ -157,6 +157,7 @@
         try {
           const live = await AirApi.searchLive(q);
           AirApi.saveLive(route.id, live);
+          if (route._local && live.cheapest != null) FlightData.addHist(route.id, AirApi.kstToday(), live.cheapest);
           FlightData.applyLive(route, { ts: Date.now(), date: AirApi.kstToday(),
             cheapest: live.cheapest, offers: live.offers, insights: live.insights });
           render();   // 화면 전체를 새 데이터로 다시 그림

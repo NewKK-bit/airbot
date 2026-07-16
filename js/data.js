@@ -14,31 +14,73 @@ function applyLive(route, live) {
 }
 
 async function loadData() {
+  let data;
   try {
     const res = await fetch(DATA_URL, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    // 이 브라우저에서 '재검색'으로 받아둔 실시간 값이 수집본보다 새로우면 반영
-    const genTs = data.generatedAt ? Date.parse(data.generatedAt) : 0;
-    for (const r of data.routes || []) {
-      try {
-        const live = JSON.parse(localStorage.getItem("airbot.live." + r.id));
-        if (live && live.ts > genTs) applyLive(r, live);
-      } catch { /* 무시 */ }
-    }
-    return data;
+    data = await res.json();
   } catch (e) {
     console.error("데이터 로드 실패:", e);
-    return { routes: [], generatedAt: null, source: "error" };
+    data = { routes: [], generatedAt: null, source: "error" };
   }
+  data.routes = data.routes || [];
+
+  // 사용자가 이 브라우저에서 직접 추가한 노선 병합 (가격 히스토리는 로컬 저장)
+  for (const r of getMyRoutes()) {
+    data.routes.push({ ...r, _local: true, prices: getHist(r.id), insights: null, bestFlights: [] });
+  }
+
+  // 실시간 갱신값 + 목표가 등 사용자 수정(override) 반영
+  const genTs = data.generatedAt ? Date.parse(data.generatedAt) : 0;
+  const ov = getOverrides();
+  for (const r of data.routes) {
+    try {
+      const live = JSON.parse(localStorage.getItem("airbot.live." + r.id));
+      // 로컬 노선은 항상, 수집 노선은 수집본보다 새로울 때만 적용
+      if (live && (r._local || live.ts > genTs)) applyLive(r, live);
+    } catch { /* 무시 */ }
+    if (ov[r.id] && ov[r.id].targetPrice != null) r.targetPrice = ov[r.id].targetPrice;
+  }
+  return data;
 }
 
-// 모니터링에서 숨긴(삭제한) 노선 관리
+// 모니터링에서 숨긴(삭제한) 수집 노선 관리
 function getHidden() {
   try { return new Set(JSON.parse(localStorage.getItem("airbot.hidden") || "[]")); }
   catch { return new Set(); }
 }
 function setHidden(set) { localStorage.setItem("airbot.hidden", JSON.stringify([...set])); }
+
+// 내가 추가한 로컬 노선
+function getMyRoutes() { try { return JSON.parse(localStorage.getItem("airbot.myRoutes") || "[]"); } catch { return []; } }
+function saveMyRoutes(a) { localStorage.setItem("airbot.myRoutes", JSON.stringify(a)); }
+function upsertMyRoute(cfg) {
+  const a = getMyRoutes(); const i = a.findIndex((r) => r.id === cfg.id);
+  if (i >= 0) a[i] = cfg; else a.push(cfg);
+  saveMyRoutes(a);
+}
+function removeMyRoute(id) {
+  saveMyRoutes(getMyRoutes().filter((r) => r.id !== id));
+  localStorage.removeItem("airbot.hist." + id);
+  localStorage.removeItem("airbot.live." + id);
+}
+
+// 로컬 노선 가격 히스토리
+function getHist(id) { try { return JSON.parse(localStorage.getItem("airbot.hist." + id) || "[]"); } catch { return []; } }
+function addHist(id, date, price) {
+  const h = getHist(id).filter((p) => p.date !== date);
+  h.push({ date, price, source: "실시간" });
+  h.sort((a, b) => a.date.localeCompare(b.date));
+  localStorage.setItem("airbot.hist." + id, JSON.stringify(h));
+  return h;
+}
+
+// 목표가 등 사용자 수정 override (수집 노선에도 적용)
+function getOverrides() { try { return JSON.parse(localStorage.getItem("airbot.overrides") || "{}"); } catch { return {}; } }
+function setOverride(id, patch) {
+  const o = getOverrides(); o[id] = { ...o[id], ...patch };
+  localStorage.setItem("airbot.overrides", JSON.stringify(o));
+}
 
 // 통화 포맷
 function won(n) {
@@ -115,4 +157,6 @@ function getRouteById(data, id) {
 }
 
 window.FlightData = { loadData, won, shortDate, routeStats, buySignal, priceLevel, fmtDuration,
-                      getRouteById, applyLive, getHidden, setHidden };
+                      getRouteById, applyLive, getHidden, setHidden,
+                      getMyRoutes, saveMyRoutes, upsertMyRoute, removeMyRoute,
+                      getHist, addHist, getOverrides, setOverride };

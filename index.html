@@ -82,8 +82,8 @@
       <!-- 검색 결과 -->
       <section class="section" id="resultsSection" style="display:none">
         <div class="section-head">
-          <h2>검색 결과</h2>
-          <span class="sub" id="resultsMeta"></span>
+          <div><h2>검색 결과</h2><div class="sub" id="resultsMeta"></div></div>
+          <button class="btn btn-ghost" id="watchAddBtn" style="flex:none;display:none"></button>
         </div>
         <div id="insightArea"></div>
         <div class="card" id="resultsCard" style="padding:0;overflow:hidden"></div>
@@ -132,6 +132,7 @@
   <script src="js/chart.js"></script>
   <script src="js/app.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/routeform.js"></script>
   <script>
   (async function () {
     injectHeader("search");
@@ -139,6 +140,8 @@
     $("swapBtn").innerHTML = ICONS.swap;
     $("searchBtn").innerHTML = ICONS.search + " 최저가 검색";
     $("settingsBtn").innerHTML = ICONS.gear;
+    $("watchAddBtn").innerHTML = ICONS.plus + " 관심 노선으로 추가";
+    let lastQuery = null, lastResult = null;
     await loadAirports();
 
     const originI = $("origin"), destI = $("destination");
@@ -234,6 +237,8 @@
     $("searchBtn").addEventListener("click", async () => {
       const q = currentQuery(false);
       if (!q) return;
+      lastQuery = q;
+      $("watchAddBtn").style.display = "";
 
       resultsSec.style.display = "";
       $("insightArea").innerHTML = "";
@@ -277,7 +282,23 @@
         <h3>검색에 실패했어요</h3><p>${msg}</p></div>`;
     }
 
+    // 검색 결과 → 관심 노선으로 추가
+    $("watchAddBtn").addEventListener("click", async () => {
+      if (!lastQuery) return;
+      const prefill = { ...lastQuery, targetPrice: lastResult?.cheapest ?? null };
+      const cfg = await openRouteForm(prefill);
+      if (!cfg) return;
+      FlightData.upsertMyRoute(cfg);
+      // 방금 검색한 결과를 그대로 첫 기록으로 저장
+      if (lastResult) {
+        AirApi.saveLive(cfg.id, lastResult);
+        if (lastResult.cheapest != null) FlightData.addHist(cfg.id, AirApi.kstToday(), lastResult.cheapest);
+      }
+      toast("✓ 관심 노선에 추가됐어요 — 모니터링에서 확인하세요");
+    });
+
     function renderResults(result, q, sourceLabel) {
+      lastResult = result;
       const offers = result.offers || [];
       $("resultsMeta").textContent =
         `${airportLabel(q.origin)} → ${airportLabel(q.destination)} · ${q.departDate}${q.returnDate ? "~" + q.returnDate : ""} · 1인당 기준 · ${sourceLabel}`;
