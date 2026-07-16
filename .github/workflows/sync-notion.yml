@@ -1,0 +1,47 @@
+name: Sync Notion → prices.json
+
+# Notion의 관심노선/가격기록을 읽어 data/prices.json 으로 커밋합니다.
+# 토큰은 GitHub Secrets에만 저장되며 배포된 정적 사이트에는 노출되지 않습니다.
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # 6시간마다 (UTC)
+  workflow_dispatch:          # 저장소 Actions 탭에서 수동 실행 가능
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-notion
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Notion 동기화 실행
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_ROUTES_DB: ${{ secrets.NOTION_ROUTES_DB }}
+          NOTION_PRICES_DB: ${{ secrets.NOTION_PRICES_DB }}
+        run: node scripts/sync-notion.mjs
+
+      - name: 변경사항 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/prices.json)" ]; then
+            git add data/prices.json
+            git commit -m "chore: sync prices from Notion [skip ci]"
+            git push
+          else
+            echo "변경사항 없음"
+          fi
