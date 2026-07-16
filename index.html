@@ -346,12 +346,21 @@
       resultsCard.append(list);
     }
 
-    // ---------- 관심 노선 미리보기 ----------
-    const preview = activeRoutes.slice(0, 3);
-    if (preview.length) {
-      $("watchPreview").style.display = "";
+    // ---------- 관심 노선 미리보기 (열 때 자동 갱신) ----------
+    async function renderPreview() {
+      const d = await FlightData.loadData();
+      const h = FlightData.getHidden();
+      const act = (d.routes || []).filter((r) => r.active !== false && !h.has(r.id));
+      const preview = act.slice(0, 3);
       const grid = $("previewGrid");
+      grid.innerHTML = "";
+      $("watchPreview").style.display = preview.length ? "" : "none";
       preview.forEach((r) => grid.append(renderRouteCard(r)));
+      return act;
+    }
+    const act0 = await renderPreview();
+    if (AirApi.isConfigured() && act0.length) {
+      AirApi.autoRefreshAll(act0).then((n) => { if (n) renderPreview(); });
     }
 
     function renderRouteCard(route) {

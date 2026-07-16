@@ -8,9 +8,15 @@ const LS_PROXY = "airbot.proxyUrl";
 // 시간대 밴드 → SerpApi outbound_times/return_times (시작시, 끝시)
 const TIME_RANGE = { dawn: "0,6", morning: "6,12", afternoon: "12,18", evening: "18,23" };
 
-const getProxy = () => (localStorage.getItem(LS_PROXY) || "").trim();
-function setProxy(url) {
+// 프로토콜 누락 시 https:// 자동 보정 (예: "xxx.workers.dev" → "https://xxx.workers.dev")
+function normalizeProxy(url) {
   url = (url || "").trim().replace(/\/+$/, "");
+  if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
+  return url;
+}
+const getProxy = () => normalizeProxy(localStorage.getItem(LS_PROXY) || "");
+function setProxy(url) {
+  url = normalizeProxy(url);
   if (url) localStorage.setItem(LS_PROXY, url);
   else localStorage.removeItem(LS_PROXY);
 }
@@ -82,7 +88,7 @@ async function searchLive(q) {
     throw new Error("프록시에 연결할 수 없어요. 설정된 URL을 확인해주세요.");
   }
   try { json = await res.json(); }
-  catch { throw new Error("프록시 응답이 올바르지 않아요 (JSON 아님)."); }
+  catch { throw new Error(`프록시 응답이 JSON이 아니에요 (HTTP ${res.status}). 프록시 주소가 맞는지 확인하세요.`); }
 
   if (json.error) {
     const msg = String(json.error);
