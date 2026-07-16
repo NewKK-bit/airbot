@@ -96,7 +96,7 @@ const PROVIDERS = [
 ];
 
 // 대표 예약 사이트 — "예약하기" 버튼이 단일 탭으로 곧장 예약 흐름으로 보냄
-const BOOKING_PROVIDER = { id: "skyscanner", label: "Skyscanner", build: skyscanner };
+const BOOKING_PROVIDER = { id: "naver", label: "네이버항공권", build: naver };
 function bookingLink(q) { return BOOKING_PROVIDER.build(q); }
 
 /** 특정 노선(route 객체)을 SearchQuery로 변환 */
