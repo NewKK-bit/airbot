@@ -1,7 +1,8 @@
 {
-  "generatedAt": "2026-07-16T04:33:58.179Z",
-  "source": "SerpApi Google Flights",
+  "generatedAt": "2026-07-16T00:00:00Z",
+  "source": "대기중 (첫 수집 전)",
   "currency": "KRW",
+  "priceBasis": "per-person",
   "routes": [
     {
       "id": "icn-nrt-2026-09",
@@ -18,83 +19,9 @@
       "currency": "KRW",
       "active": true,
       "memo": "추석 연휴 직전, 목표가 도달 시 즉시 예매",
-      "prices": [
-        {
-          "date": "2026-06-01",
-          "price": 452000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-06-10",
-          "price": 438000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-06-20",
-          "price": 465000,
-          "source": "Google Flights"
-        },
-        {
-          "date": "2026-06-30",
-          "price": 421000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-07-08",
-          "price": 389000,
-          "source": "네이버항공권"
-        },
-        {
-          "date": "2026-07-14",
-          "price": 342000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-07-16",
-          "price": 358000,
-          "source": "Google Flights"
-        }
-      ],
-      "insights": {
-        "lowest": 358000,
-        "level": "typical",
-        "typicalLow": 210000,
-        "typicalHigh": 360000
-      },
-      "bestFlights": [
-        {
-          "price": 358000,
-          "airline": "에어프레미아",
-          "departTime": "2026-09-10 13:50",
-          "arriveTime": "2026-09-10 16:30",
-          "duration": 160,
-          "stops": 0
-        },
-        {
-          "price": 360100,
-          "airline": "에어서울",
-          "departTime": "2026-09-10 08:10",
-          "arriveTime": "2026-09-10 10:40",
-          "duration": 150,
-          "stops": 0
-        },
-        {
-          "price": 360684,
-          "airline": "이스타항공",
-          "departTime": "2026-09-10 07:25",
-          "arriveTime": "2026-09-10 09:50",
-          "duration": 145,
-          "stops": 0
-        },
-        {
-          "price": 370100,
-          "airline": "에어서울",
-          "departTime": "2026-09-10 09:20",
-          "arriveTime": "2026-09-10 11:50",
-          "duration": 150,
-          "stops": 0
-        }
-      ]
+      "prices": [],
+      "insights": null,
+      "bestFlights": []
     },
     {
       "id": "icn-kix-2026-10",
@@ -111,73 +38,9 @@
       "currency": "KRW",
       "active": true,
       "memo": "개천절 연휴 2인",
-      "prices": [
-        {
-          "date": "2026-06-05",
-          "price": 318000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-06-18",
-          "price": 305000,
-          "source": "네이버항공권"
-        },
-        {
-          "date": "2026-07-01",
-          "price": 329000,
-          "source": "Google Flights"
-        },
-        {
-          "date": "2026-07-12",
-          "price": 312000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-07-16",
-          "price": 824808,
-          "source": "Google Flights"
-        }
-      ],
-      "insights": {
-        "lowest": 824808,
-        "level": "typical",
-        "typicalLow": 350000,
-        "typicalHigh": 830000
-      },
-      "bestFlights": [
-        {
-          "price": 824808,
-          "airline": "에어부산",
-          "departTime": "2026-10-03 14:50",
-          "arriveTime": "2026-10-03 17:00",
-          "duration": 130,
-          "stops": 0
-        },
-        {
-          "price": 839808,
-          "airline": "피치항공",
-          "departTime": "2026-10-03 14:40",
-          "arriveTime": "2026-10-03 16:30",
-          "duration": 110,
-          "stops": 0
-        },
-        {
-          "price": 839808,
-          "airline": "피치항공",
-          "departTime": "2026-10-03 20:55",
-          "arriveTime": "2026-10-03 22:45",
-          "duration": 110,
-          "stops": 0
-        },
-        {
-          "price": 897208,
-          "airline": "진에어",
-          "departTime": "2026-10-03 16:10",
-          "arriveTime": "2026-10-03 18:05",
-          "duration": 115,
-          "stops": 0
-        }
-      ]
+      "prices": [],
+      "insights": null,
+      "bestFlights": []
     },
     {
       "id": "icn-dad-2026-11",
@@ -194,73 +57,9 @@
       "currency": "KRW",
       "active": true,
       "memo": "가을 휴가",
-      "prices": [
-        {
-          "date": "2026-06-02",
-          "price": 512000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-06-15",
-          "price": 498000,
-          "source": "Skyscanner"
-        },
-        {
-          "date": "2026-06-28",
-          "price": 476000,
-          "source": "Google Flights"
-        },
-        {
-          "date": "2026-07-10",
-          "price": 455000,
-          "source": "네이버항공권"
-        },
-        {
-          "date": "2026-07-16",
-          "price": 731878,
-          "source": "Google Flights"
-        }
-      ],
-      "insights": {
-        "lowest": 731878,
-        "level": "high",
-        "typicalLow": 390000,
-        "typicalHigh": 680000
-      },
-      "bestFlights": [
-        {
-          "price": 731878,
-          "airline": "제주항공",
-          "departTime": "2026-11-15 10:05",
-          "arriveTime": "2026-11-15 13:20",
-          "duration": 315,
-          "stops": 0
-        },
-        {
-          "price": 870482,
-          "airline": "비엣젯항공",
-          "departTime": "2026-11-15 07:00",
-          "arriveTime": "2026-11-15 10:05",
-          "duration": 305,
-          "stops": 0
-        },
-        {
-          "price": 915400,
-          "airline": "베트남항공",
-          "departTime": "2026-11-15 00:30",
-          "arriveTime": "2026-11-15 03:35",
-          "duration": 305,
-          "stops": 0
-        },
-        {
-          "price": 942078,
-          "airline": "Trinity Airways",
-          "departTime": "2026-11-15 19:00",
-          "arriveTime": "2026-11-15 22:20",
-          "duration": 320,
-          "stops": 0
-        }
-      ]
+      "prices": [],
+      "insights": null,
+      "bestFlights": []
     }
   ]
 }

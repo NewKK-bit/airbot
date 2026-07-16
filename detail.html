@@ -51,7 +51,7 @@
           <span class="sub">Google Flights 최근 수집 · 가격순</span>
         </div>
         <div style="overflow-x:auto"><table class="ptable">
-          <thead><tr><th>항공사</th><th>출발</th><th>도착</th><th>소요</th><th>경유</th><th>가격</th></tr></thead>
+          <thead><tr><th>항공사</th><th>출발</th><th>도착</th><th>소요</th><th>경유</th><th>가격(1인당)</th></tr></thead>
           <tbody>${best.map((o) => `<tr>
             <td style="font-weight:600">${o.airline || "-"}</td>
             <td>${o.departTime || "-"}</td>
@@ -80,7 +80,7 @@
       ${route.memo ? `<div class="card" style="padding:14px 18px;margin-bottom:20px;color:var(--text-2)">📝 ${route.memo}</div>` : ""}
 
       <div class="stats-row" style="margin-bottom:24px">
-        <div class="card stat"><div class="k">현재가</div><div class="v">${FlightData.won(s.current)}</div>
+        <div class="card stat"><div class="k">현재가 (1인당)</div><div class="v">${FlightData.won(s.current)}</div>
           <div class="d ${deltaCls}" style="display:flex;align-items:center;gap:3px">${s.deltaFromPrev ? deltaIco + " " + FlightData.won(Math.abs(s.deltaFromPrev)) + " (직전 대비)" : "변동 없음"}</div></div>
         <div class="card stat"><div class="k">역대 최저</div><div class="v" style="color:var(--down)">${FlightData.won(s.min)}</div><div class="d">현재는 최저 대비 +${s.vsMinPct.toFixed(1)}%</div></div>
         <div class="card stat"><div class="k">평균가</div><div class="v">${FlightData.won(s.avg)}</div><div class="d">최고 ${FlightData.won(s.max)}</div></div>

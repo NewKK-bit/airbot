@@ -114,12 +114,22 @@ async function main() {
       if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
 
       const { cheapest, offers, insights } = summarize(json);
-      if (cheapest != null) {
-        route.prices = mergePrice(route.prices, today, cheapest);
+      // SerpApi(구글플라이트)는 인원수 총액을 반환 → 1인당으로 정규화
+      const pax = c.passengers || 1;
+      const perPerson = (v) => (v == null ? null : Math.round(v / pax));
+      const cheapestPP = perPerson(cheapest);
+      offers.forEach((o) => { o.price = perPerson(o.price); });
+      if (insights) {
+        insights.lowest = perPerson(insights.lowest);
+        insights.typicalLow = perPerson(insights.typicalLow);
+        insights.typicalHigh = perPerson(insights.typicalHigh);
+      }
+      if (cheapestPP != null) {
+        route.prices = mergePrice(route.prices, today, cheapestPP);
         route.insights = insights;
         route.bestFlights = offers;
         ok++;
-        console.log(`✓ ${c.name} (${c.origin}→${c.destination}): ${cheapest.toLocaleString()}원, 추천 ${offers.length}편`);
+        console.log(`✓ ${c.name} (${c.origin}→${c.destination}): 1인당 ${cheapestPP.toLocaleString()}원(총 ${cheapest.toLocaleString()}/${pax}인), 추천 ${offers.length}편`);
       } else {
         console.warn(`⚠ ${c.name}: 가격 결과 없음, 기존 데이터 유지`);
         fail++;
@@ -137,6 +147,7 @@ async function main() {
     generatedAt: new Date().toISOString(),
     source: "SerpApi Google Flights",
     currency: "KRW",
+    priceBasis: "per-person",
     routes,
   };
   await mkdir(dirname(OUT), { recursive: true });

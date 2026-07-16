@@ -32,7 +32,7 @@
       </div>
 
       <p class="data-note">
-        가격은 <strong>Google Flights(SerpApi)</strong>에서 매일 자동 수집한 값입니다.
+        가격은 <strong>Google Flights(SerpApi)</strong>에서 매일 자동 수집한 <strong>1인당</strong> 기준입니다.
         감시할 노선은 <code>data/routes.json</code>에서 관리합니다.
       </p>
     </div>
@@ -108,6 +108,7 @@
         </div>
         <div class="price-row">
           <span class="price-now">${FlightData.won(s.current)}</span>
+          <span style="font-size:.72rem;color:var(--text-3);font-weight:700">1인당</span>
           ${s.deltaFromPrev ? `<span class="price-delta ${deltaCls}">${deltaIco}${FlightData.won(Math.abs(s.deltaFromPrev))}</span>` : ""}
         </div>
         <div class="route-sub" style="color:var(--${sig.tone === 'down' ? 'down' : sig.tone === 'up' ? 'up' : 'text-2'})">${sig.text}</div>

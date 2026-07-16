@@ -202,6 +202,7 @@
         </div>
         <div class="price-row">
           <span class="price-now">${FlightData.won(s.current)}</span>
+          <span style="font-size:.72rem;color:var(--text-3);font-weight:700">1인당</span>
           ${s.deltaFromPrev ? `<span class="price-delta ${deltaCls}">${deltaIco}${FlightData.won(Math.abs(s.deltaFromPrev))}</span>` : ""}
         </div>
         <div class="sparkholder"></div>
