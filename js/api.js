@@ -108,4 +108,23 @@ function loadLive(routeId) {
   catch { return null; }
 }
 
-window.AirApi = { isConfigured, getProxy, setProxy, searchLive, saveLive, loadLive, kstToday, TIME_RANGE };
+/** 자동 갱신: 오늘 아직 안 받아온 노선을 프록시로 조회해 기록. 갱신된 개수 반환 */
+async function autoRefreshRoute(route) {
+  if (!isConfigured()) return false;
+  const today = kstToday();
+  const live = loadLive(route.id);
+  if (live && live.date === today) return false; // 오늘 이미 갱신됨
+  const q = window.DeepLink.routeToQuery(route);
+  const r = await searchLive(q);
+  saveLive(route.id, r);
+  if (route._local && r.cheapest != null && window.FlightData) window.FlightData.addHist(route.id, today, r.cheapest);
+  return true;
+}
+async function autoRefreshAll(routes) {
+  let n = 0;
+  for (const route of routes) { try { if (await autoRefreshRoute(route)) n++; } catch { /* 개별 실패 무시 */ } }
+  return n;
+}
+
+window.AirApi = { isConfigured, getProxy, setProxy, searchLive, saveLive, loadLive,
+                  autoRefreshRoute, autoRefreshAll, kstToday, TIME_RANGE };

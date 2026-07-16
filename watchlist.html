@@ -35,9 +35,8 @@
       </div>
 
       <p class="data-note">
-        <strong>자동수집</strong> 노선은 매일 Google Flights에서 수집되고(관리: <code>data/routes.json</code>),
-        <strong>내 노선</strong>은 이 브라우저에 저장되어 '재검색' 시 실시간 조회됩니다.
-        가격은 모두 <strong>1인당</strong> 기준입니다.
+        <strong>관심 노선 추가</strong>로 등록하면 앱을 열 때마다 Google Flights 가격으로 자동 갱신됩니다(1인당 기준).
+        가격 기록은 이 브라우저에 저장돼 추이가 쌓입니다. 언제든 편집·삭제할 수 있어요.
       </p>
     </div>
   </main>
@@ -59,10 +58,9 @@
     async function reload() {
       data = await FlightData.loadData();
       hidden = FlightData.getHidden();
-      if (data.generatedAt) {
-        const d = new Date(data.generatedAt);
-        $("genInfo").textContent = `자동수집 마지막 업데이트 ${d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })}`;
-      }
+      $("genInfo").textContent = AirApi.isConfigured()
+        ? "추가한 노선을 앱을 열 때마다 자동으로 최신 가격으로 갱신합니다"
+        : "⚠️ 실시간 자동 갱신을 켜려면 검색 페이지 ⚙️에서 프록시를 설정하세요";
       renderGrid();
     }
 
@@ -142,11 +140,10 @@
       card.className = "card route-card fade-in";
       const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
       const deltaIco = s.deltaFromPrev < 0 ? ICONS.down : s.deltaFromPrev > 0 ? ICONS.up : "";
-      const kindBadge = route._local
-        ? '<span class="badge badge-off">내 노선</span>'
-        : '<span class="badge badge-off" style="background:color-mix(in srgb,var(--blue-500) 12%,transparent);color:var(--blue-500)">자동수집</span>';
+      const kindBadge = route._local ? ""
+        : '<span class="badge badge-off" style="background:color-mix(in srgb,var(--blue-500) 12%,transparent);color:var(--blue-500)">서버수집</span>';
       const statusBadge = s.hitTarget ? '<span class="badge badge-hit">🎯 목표가 도달</span>'
-                        : '<span class="badge badge-active">모니터링중</span>';
+                        : '<span class="badge badge-active">자동 모니터링중</span>';
       const sig = FlightData.buySignal(s, route);
       const liveTag = route._liveTs
         ? `<span class="live-tag">· ${Math.max(1, Math.round((Date.now() - route._liveTs) / 60000))}분 전 갱신</span>` : "";
@@ -245,6 +242,15 @@
     }
 
     await reload();
+
+    // 앱을 열면 오늘 아직 안 받아온 노선을 자동으로 갱신
+    if (AirApi.isConfigured()) {
+      const routes = visibleRoutes();
+      if (routes.length) {
+        const n = await AirApi.autoRefreshAll(routes);
+        if (n) { await reload(); toast(`✓ ${n}개 노선 자동 갱신됨`); }
+      }
+    }
   })();
   </script>
 </body>
