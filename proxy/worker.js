@@ -22,12 +22,14 @@ const ALLOWED_PARAMS = new Set([
   "adults", "stops", "outbound_times", "return_times",
 ]);
 
-function corsHeaders(origin) {
-  const ok = ALLOWED_ORIGINS.includes(origin)
+function isAllowed(origin) {
+  return ALLOWED_ORIGINS.includes(origin)
     || origin.startsWith("http://localhost")
     || origin.startsWith("http://127.0.0.1");
+}
+function corsHeaders(origin) {
   return {
-    "Access-Control-Allow-Origin": ok ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Origin": isAllowed(origin) ? origin : ALLOWED_ORIGINS[0],
     "Access-Control-Allow-Methods": "GET, OPTIONS",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
@@ -43,6 +45,8 @@ export default {
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (request.method !== "GET") return json({ error: "GET only" }, 405, cors);
+    // 쿼터 도용 방지: 허용된 출처(내 사이트)에서 온 요청만 처리
+    if (!isAllowed(origin)) return json({ error: "허용되지 않은 출처입니다" }, 403, cors);
     if (!env.SERPAPI_KEY) return json({ error: "SERPAPI_KEY secret이 설정되지 않았어요" }, 500, cors);
 
     // 파라미터 구성 (engine/지역화는 서버가 고정)

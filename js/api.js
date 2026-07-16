@@ -4,6 +4,9 @@
 // 프록시 URL은 이 브라우저의 localStorage에만 저장된다.
 
 const LS_PROXY = "airbot.proxyUrl";
+// 기본 프록시 — 모든 기기에서 별도 설정 없이 동작. 개별 기기에서 ⚙️로 덮어쓸 수 있음.
+// (키는 Worker 서버에만 있으므로 이 주소가 공개돼도 API 키는 노출되지 않음)
+const DEFAULT_PROXY = "https://airbot-proxy.tpdbsyon11.workers.dev";
 
 // 시간대 밴드 → SerpApi outbound_times/return_times (시작시, 끝시)
 const TIME_RANGE = { dawn: "0,6", morning: "6,12", afternoon: "12,18", evening: "18,23" };
@@ -14,7 +17,7 @@ function normalizeProxy(url) {
   if (url && !/^https?:\/\//i.test(url)) url = "https://" + url;
   return url;
 }
-const getProxy = () => normalizeProxy(localStorage.getItem(LS_PROXY) || "");
+const getProxy = () => normalizeProxy(localStorage.getItem(LS_PROXY) || DEFAULT_PROXY);
 function setProxy(url) {
   url = normalizeProxy(url);
   if (url) localStorage.setItem(LS_PROXY, url);
