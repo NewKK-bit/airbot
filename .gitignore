@@ -4,7 +4,11 @@ dist/
 .DS_Store
 Thumbs.db
 
-# 로컬 환경변수 (Notion 토큰 등은 절대 커밋 금지)
+# 로컬 환경변수 (API 키 등은 절대 커밋 금지)
 .env
 .env.local
 *.local
+
+# 로컬 스크린샷/작업 파일
+*.png
+*.jpg

@@ -110,6 +110,7 @@ function routeToQuery(route) {
     passengers: route.passengers || 1,
     direct: !!route.direct,
     departTime: route.departTime || "any",
+    returnTime: route.returnTime || "any",
   };
 }
 

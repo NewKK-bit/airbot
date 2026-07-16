@@ -65,7 +65,8 @@
           "duration": 150,
           "stops": 0
         }
-      ]
+      ],
+      "returnTime": "any"
     },
     {
       "id": "icn-kix-2026-10",
@@ -128,7 +129,8 @@
           "duration": 115,
           "stops": 0
         }
-      ]
+      ],
+      "returnTime": "any"
     },
     {
       "id": "icn-dad-2026-11",
@@ -191,7 +193,8 @@
           "duration": 320,
           "stops": 0
         }
-      ]
+      ],
+      "returnTime": "any"
     }
   ]
 }

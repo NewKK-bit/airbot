@@ -2,16 +2,43 @@
 
 const DATA_URL = "data/prices.json";
 
+// 실시간 갱신 결과(로컬 저장)를 노선에 병합 — 오늘자 가격 교체 + 추천편/인사이트 갱신
+function applyLive(route, live) {
+  if (!live || live.cheapest == null) return;
+  route.prices = [...(route.prices || []).filter((p) => p.date !== live.date),
+    { date: live.date, price: live.cheapest, source: "실시간" }]
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (live.insights) route.insights = live.insights;
+  if (live.offers?.length) route.bestFlights = live.offers;
+  route._liveTs = live.ts;
+}
+
 async function loadData() {
   try {
     const res = await fetch(DATA_URL, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    const data = await res.json();
+    // 이 브라우저에서 '재검색'으로 받아둔 실시간 값이 수집본보다 새로우면 반영
+    const genTs = data.generatedAt ? Date.parse(data.generatedAt) : 0;
+    for (const r of data.routes || []) {
+      try {
+        const live = JSON.parse(localStorage.getItem("airbot.live." + r.id));
+        if (live && live.ts > genTs) applyLive(r, live);
+      } catch { /* 무시 */ }
+    }
+    return data;
   } catch (e) {
     console.error("데이터 로드 실패:", e);
     return { routes: [], generatedAt: null, source: "error" };
   }
 }
+
+// 모니터링에서 숨긴(삭제한) 노선 관리
+function getHidden() {
+  try { return new Set(JSON.parse(localStorage.getItem("airbot.hidden") || "[]")); }
+  catch { return new Set(); }
+}
+function setHidden(set) { localStorage.setItem("airbot.hidden", JSON.stringify([...set])); }
 
 // 통화 포맷
 function won(n) {
@@ -87,4 +114,5 @@ function getRouteById(data, id) {
   return (data.routes || []).find((r) => r.id === id) || null;
 }
 
-window.FlightData = { loadData, won, shortDate, routeStats, buySignal, priceLevel, fmtDuration, getRouteById };
+window.FlightData = { loadData, won, shortDate, routeStats, buySignal, priceLevel, fmtDuration,
+                      getRouteById, applyLive, getHidden, setHidden };

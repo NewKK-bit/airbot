@@ -19,6 +19,7 @@
   <script src="js/data.js"></script>
   <script src="js/chart.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/api.js"></script>
   <script>
   (async function () {
     injectHeader("watch");
@@ -37,108 +38,146 @@
       return;
     }
 
-    const s = FlightData.routeStats(route);
-    const sig = FlightData.buySignal(s, route);
-    const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
-    const deltaIco = s.deltaFromPrev < 0 ? ICONS.down : s.deltaFromPrev > 0 ? ICONS.up : "";
+    const bandLabel = (tid) => DeepLink.bandOf(tid).label;
 
-    // 추천 항공편 (SerpApi가 수집한 실제 편, 가격순)
-    const best = route.bestFlights || [];
-    const recoHtml = best.length ? `
-      <div class="card" style="padding:20px;margin-bottom:24px">
-        <div class="section-head" style="margin-bottom:12px">
-          <h2 style="font-size:1.1rem">✈️ 추천 항공편</h2>
-          <span class="sub">Google Flights 최근 수집 · 가격순</span>
+    function render() {
+      const s = FlightData.routeStats(route);
+      const sig = FlightData.buySignal(s, route);
+      const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
+      const deltaIco = s.deltaFromPrev < 0 ? ICONS.down : s.deltaFromPrev > 0 ? ICONS.up : "";
+      const times = [
+        route.departTime && route.departTime !== "any" ? `가는편 ${bandLabel(route.departTime)}` : "",
+        route.returnDate && route.returnTime && route.returnTime !== "any" ? `오는편 ${bandLabel(route.returnTime)}` : "",
+      ].filter(Boolean).join(" · ");
+      const liveTag = route._liveTs
+        ? ` · <span class="live-tag">${Math.max(1, Math.round((Date.now() - route._liveTs) / 60000))}분 전 실시간 갱신</span>` : "";
+
+      // 추천 항공편
+      const best = route.bestFlights || [];
+      const recoHtml = best.length ? `
+        <div class="card" style="padding:20px;margin-bottom:24px">
+          <div class="section-head" style="margin-bottom:12px">
+            <h2 style="font-size:1.1rem">✈️ 추천 항공편</h2>
+            <span class="sub">Google Flights · 가격순${liveTag}</span>
+          </div>
+          <div style="overflow-x:auto"><table class="ptable">
+            <thead><tr><th>항공사</th><th>출발</th><th>도착</th><th>소요</th><th>경유</th><th>가격(1인당)</th><th></th></tr></thead>
+            <tbody>${best.map((o) => `<tr>
+              <td style="font-weight:600">${o.airline || "-"}</td>
+              <td>${(o.departTime || "").slice(11) || "-"}</td>
+              <td>${(o.arriveTime || "").slice(11) || "-"}</td>
+              <td>${FlightData.fmtDuration(o.duration) || "-"}</td>
+              <td>${o.stops === 0 ? '<span class="src-tag" style="color:var(--down)">직항</span>' : o.stops + "회"}</td>
+              <td style="font-weight:800">${FlightData.won(o.price)}</td>
+              <td><button class="btn btn-accent row-book" style="padding:7px 13px;font-size:.82rem">예약</button></td>
+            </tr>`).join("")}</tbody>
+          </table></div>
+        </div>` : "";
+
+      content.innerHTML = `
+        <div class="section-head" style="margin-top:6px">
+          <div>
+            <div class="route-path" style="font-size:1.6rem"><span>${airportLabel(route.origin)}</span>
+              <span class="plane">${ICONS.plane}</span><span>${airportLabel(route.destination)}</span></div>
+            <div class="route-sub">${route.name} · ${route.departDate}${route.returnDate ? " ~ " + route.returnDate : ""} · 성인 ${route.passengers || 1}명${route.direct ? " · 직항" : ""}${times ? " · " + times : ""}</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="reSearch">${ICONS.refresh} 재검색 (정보 갱신)</button>
+            <button class="btn btn-accent" id="bookBtn">${ICONS.external} 예약하기</button>
+          </div>
         </div>
-        <div style="overflow-x:auto"><table class="ptable">
-          <thead><tr><th>항공사</th><th>출발</th><th>도착</th><th>소요</th><th>경유</th><th>가격(1인당)</th></tr></thead>
-          <tbody>${best.map((o) => `<tr>
-            <td style="font-weight:600">${o.airline || "-"}</td>
-            <td>${o.departTime || "-"}</td>
-            <td>${o.arriveTime || "-"}</td>
-            <td>${FlightData.fmtDuration(o.duration) || "-"}</td>
-            <td>${o.stops === 0 ? '<span class="src-tag" style="color:var(--down)">직항</span>' : o.stops + "회 경유"}</td>
-            <td style="font-weight:800">${FlightData.won(o.price)}</td>
-          </tr>`).join("")}</tbody>
-        </table></div>
-        <p class="sub" style="margin-top:10px;font-size:.8rem;color:var(--text-3)">가격은 최근 수집 시점 기준입니다. '예약하기'로 현재가를 확인하세요.</p>
-      </div>` : "";
 
-    content.innerHTML = `
-      <div class="section-head" style="margin-top:6px">
-        <div>
-          <div class="route-path" style="font-size:1.6rem"><span>${airportLabel(route.origin)}</span>
-            <span class="plane">${ICONS.plane}</span><span>${airportLabel(route.destination)}</span></div>
-          <div class="route-sub">${route.name} · ${route.departDate}${route.returnDate ? " ~ " + route.returnDate : ""} · 성인 ${route.passengers || 1}명${route.direct ? " · 직항" : ""}${route.departTime && route.departTime !== "any" ? " · " + DeepLink.bandOf(route.departTime).label : ""}</div>
+        ${route.memo ? `<div class="card" style="padding:14px 18px;margin-bottom:20px;color:var(--text-2)">📝 ${route.memo}</div>` : ""}
+
+        <div class="stats-row" style="margin-bottom:24px">
+          <div class="card stat"><div class="k">현재가 (1인당)</div><div class="v">${FlightData.won(s.current)}</div>
+            <div class="d ${deltaCls}" style="display:flex;align-items:center;gap:3px">${s.deltaFromPrev ? deltaIco + " " + FlightData.won(Math.abs(s.deltaFromPrev)) + " (직전 대비)" : "변동 없음"}</div></div>
+          <div class="card stat"><div class="k">역대 최저</div><div class="v" style="color:var(--down)">${FlightData.won(s.min)}</div><div class="d">현재는 최저 대비 +${s.vsMinPct.toFixed(1)}%</div></div>
+          <div class="card stat"><div class="k">평균가</div><div class="v">${FlightData.won(s.avg)}</div><div class="d">최고 ${FlightData.won(s.max)}</div></div>
+          <div class="card stat"><div class="k">목표가</div><div class="v" style="color:var(--accent)">${FlightData.won(route.targetPrice)}</div>
+            <div class="d">${sig.text}</div></div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-primary" id="reSearch">${ICONS.search} 지금 다시 검색</button>
-          <button class="btn btn-accent" id="bookBtn">${ICONS.external} 예약하기</button>
+
+        ${recoHtml}
+
+        <div class="card chart-card" style="margin-bottom:24px">
+          <div class="section-head" style="margin-bottom:6px"><h2 style="font-size:1.1rem">가격 추이</h2>
+            <span class="sub">${s.prices.length}개 기록</span></div>
+          <div class="chart-wrap" id="chartWrap"></div>
+          <div class="chart-legend">
+            <span class="li"><span class="sw" style="background:var(--blue-500)"></span>가격</span>
+            <span class="li"><span class="sw" style="background:var(--accent)"></span>목표가</span>
+            <span class="li"><span class="sw dot" style="background:var(--blue-500)"></span>관측 시점 (마우스 오버)</span>
+          </div>
         </div>
-      </div>
 
-      ${route.memo ? `<div class="card" style="padding:14px 18px;margin-bottom:20px;color:var(--text-2)">📝 ${route.memo}</div>` : ""}
-
-      <div class="stats-row" style="margin-bottom:24px">
-        <div class="card stat"><div class="k">현재가 (1인당)</div><div class="v">${FlightData.won(s.current)}</div>
-          <div class="d ${deltaCls}" style="display:flex;align-items:center;gap:3px">${s.deltaFromPrev ? deltaIco + " " + FlightData.won(Math.abs(s.deltaFromPrev)) + " (직전 대비)" : "변동 없음"}</div></div>
-        <div class="card stat"><div class="k">역대 최저</div><div class="v" style="color:var(--down)">${FlightData.won(s.min)}</div><div class="d">현재는 최저 대비 +${s.vsMinPct.toFixed(1)}%</div></div>
-        <div class="card stat"><div class="k">평균가</div><div class="v">${FlightData.won(s.avg)}</div><div class="d">최고 ${FlightData.won(s.max)}</div></div>
-        <div class="card stat"><div class="k">목표가</div><div class="v" style="color:var(--accent)">${FlightData.won(route.targetPrice)}</div>
-          <div class="d">${sig.text}</div></div>
-      </div>
-
-      <div class="card chart-card" style="margin-bottom:24px">
-        <div class="section-head" style="margin-bottom:6px"><h2 style="font-size:1.1rem">가격 추이</h2>
-          <span class="sub">${s.prices.length}개 기록</span></div>
-        <div class="chart-wrap" id="chartWrap"></div>
-        <div class="chart-legend">
-          <span class="li"><span class="sw" style="background:var(--blue-500)"></span>가격</span>
-          <span class="li"><span class="sw" style="background:var(--accent)"></span>목표가</span>
-          <span class="li"><span class="sw dot" style="background:var(--blue-500)"></span>관측 시점 (마우스 오버)</span>
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:24px">
+          <div style="padding:18px 20px 6px"><h2 style="font-size:1.1rem">가격 기록</h2></div>
+          <div style="overflow-x:auto">
+            <table class="ptable">
+              <thead><tr><th>관측일</th><th>가격</th><th>직전 대비</th><th>출처</th></tr></thead>
+              <tbody id="ptbody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      ${recoHtml}
+        <div class="card" style="padding:18px 20px">
+          <div class="lbl" style="font-size:.78rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">외부 사이트에서 직접 확인 (이 일정으로 열기)</div>
+          <div class="site-links" id="siteLinks"></div>
+        </div>`;
 
-      <div class="card" style="padding:0;overflow:hidden">
-        <div style="padding:18px 20px 6px"><h2 style="font-size:1.1rem">가격 기록</h2></div>
-        <div style="overflow-x:auto">
-          <table class="ptable">
-            <thead><tr><th>관측일</th><th>가격</th><th>직전 대비</th><th>출처</th></tr></thead>
-            <tbody id="ptbody"></tbody>
-          </table>
-        </div>
-      </div>`;
+      // 차트
+      $("chartWrap").append(Chart.lineChart(s.prices, {
+        target: route.targetPrice, avg: s.avg, fmt: (v) => "₩" + Math.round(v / 1000) + "k",
+      }));
 
-    // 차트
-    $("chartWrap").append(Chart.lineChart(s.prices, {
-      target: route.targetPrice, avg: s.avg, fmt: (v) => "₩" + Math.round(v / 1000) + "k",
-    }));
+      // 가격 기록 테이블 (최신순)
+      const rows = [...s.prices].map((p, i, arr) => {
+        const prev = i > 0 ? arr[i - 1].price : null;
+        return { ...p, diff: prev != null ? p.price - prev : null };
+      }).reverse();
+      $("ptbody").innerHTML = rows.map((r) => {
+        const cls = r.diff < 0 ? "delta-down" : r.diff > 0 ? "delta-up" : "";
+        const txt = r.diff == null ? "-" : (r.diff === 0 ? "―" : (r.diff < 0 ? "▼ " : "▲ ") + FlightData.won(Math.abs(r.diff)));
+        return `<tr><td>${r.date}</td><td style="font-weight:700">${FlightData.won(r.price)}</td>
+          <td class="${cls}">${txt}</td><td><span class="src-tag">${r.source || "-"}</span></td></tr>`;
+      }).join("");
 
-    // 테이블 (최신순)
-    const rows = [...s.prices].map((p, i, arr) => {
-      const prev = i > 0 ? arr[i - 1].price : null;
-      const diff = prev != null ? p.price - prev : null;
-      return { ...p, diff };
-    }).reverse();
-    $("ptbody").innerHTML = rows.map((r) => {
-      const cls = r.diff < 0 ? "delta-down" : r.diff > 0 ? "delta-up" : "";
-      const txt = r.diff == null ? "-" : (r.diff === 0 ? "―" : (r.diff < 0 ? "▼ " : "▲ ") + FlightData.won(Math.abs(r.diff)));
-      return `<tr><td>${r.date}</td><td style="font-weight:700">${FlightData.won(r.price)}</td>
-        <td class="${cls}">${txt}</td><td><span class="src-tag">${r.source || "-"}</span></td></tr>`;
-    }).join("");
+      const q = DeepLink.routeToQuery(route);
 
-    // 재검색 / 예약
-    const q = DeepLink.routeToQuery(route);
-    $("reSearch").addEventListener("click", () => {
-      openLinks(DeepLink.PROVIDERS.map((p) => p.build(q)), { background: true });
-      toast("✈️ 전체 사이트 재검색 중 (백그라운드 탭)");
-    });
-    $("bookBtn").addEventListener("click", () => {
-      openTab(DeepLink.bookingLink(q), false);
-      toast(`🎫 ${DeepLink.BOOKING_PROVIDER.label} 예약 페이지로 이동`);
-    });
+      // 재검색 = 페이지 이동 없이 정보만 갱신
+      const reBtn = $("reSearch");
+      reBtn.addEventListener("click", async () => {
+        if (!AirApi.isConfigured()) {
+          toast("실시간 갱신은 검색 페이지의 ⚙️ 실시간 검색 설정 후 사용할 수 있어요");
+          return;
+        }
+        reBtn.disabled = true;
+        reBtn.innerHTML = ICONS.refresh + " 갱신 중…";
+        try {
+          const live = await AirApi.searchLive(q);
+          AirApi.saveLive(route.id, live);
+          FlightData.applyLive(route, { ts: Date.now(), date: AirApi.kstToday(),
+            cheapest: live.cheapest, offers: live.offers, insights: live.insights });
+          render();   // 화면 전체를 새 데이터로 다시 그림
+          toast("✓ 최신 가격으로 갱신됐어요");
+        } catch (e) {
+          reBtn.disabled = false;
+          reBtn.innerHTML = ICONS.refresh + " 재검색 (정보 갱신)";
+          toast("갱신 실패: " + e.message);
+        }
+      });
+
+      // 예약 (헤더 + 추천편 각 행)
+      const book = () => { openTab(DeepLink.bookingLink(q), false); toast("🎫 네이버항공권 예약 페이지로 이동"); };
+      $("bookBtn").addEventListener("click", book);
+      content.querySelectorAll(".row-book").forEach((b) => b.addEventListener("click", book));
+
+      // 외부 사이트 개별 바로가기
+      renderSiteButtons($("siteLinks"), q);
+    }
+
+    render();
   })();
   </script>
 </body>

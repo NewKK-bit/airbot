@@ -27,6 +27,9 @@ async function readJson(path, fallback) {
   catch { return fallback; }
 }
 
+// 시간대 밴드 → SerpApi 시간 범위 (시작시,끝시)
+const TIME_RANGE = { dawn: "0,6", morning: "6,12", afternoon: "12,18", evening: "18,23" };
+
 // SerpApi 파라미터 구성
 function buildUrl(route) {
   const p = new URLSearchParams({
@@ -47,6 +50,8 @@ function buildUrl(route) {
     if (route.returnDate) p.set("return_date", route.returnDate);
   }
   if (route.direct) p.set("stops", "1"); // 1 = 직항만
+  if (TIME_RANGE[route.departTime]) p.set("outbound_times", TIME_RANGE[route.departTime]);
+  if (route.tripType !== "oneway" && TIME_RANGE[route.returnTime]) p.set("return_times", TIME_RANGE[route.returnTime]);
   return `${ENDPOINT}?${p.toString()}`;
 }
 

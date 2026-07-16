@@ -15,7 +15,8 @@
       "targetPrice": 350000,
       "currency": "KRW",
       "active": true,
-      "memo": "추석 연휴 직전, 목표가 도달 시 즉시 예매"
+      "memo": "추석 연휴 직전, 목표가 도달 시 즉시 예매",
+      "returnTime": "any"
     },
     {
       "id": "icn-kix-2026-10",
@@ -31,7 +32,8 @@
       "targetPrice": 300000,
       "currency": "KRW",
       "active": true,
-      "memo": "개천절 연휴 2인"
+      "memo": "개천절 연휴 2인",
+      "returnTime": "any"
     },
     {
       "id": "icn-dad-2026-11",
@@ -47,7 +49,8 @@
       "targetPrice": 400000,
       "currency": "KRW",
       "active": true,
-      "memo": "가을 휴가"
+      "memo": "가을 휴가",
+      "returnTime": "any"
     }
   ]
 }

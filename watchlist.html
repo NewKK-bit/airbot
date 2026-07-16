@@ -17,8 +17,6 @@
             <div class="sub" id="genInfo">관심 노선의 가격 추이를 한눈에</div>
           </div>
         </div>
-
-        <!-- 요약 통계 -->
         <div class="stats-row" id="statsRow"></div>
       </div>
 
@@ -29,11 +27,16 @@
         </div>
         <div class="route-grid" id="routeGrid"></div>
         <div id="emptyState"></div>
+        <p id="hiddenInfo" style="display:none;margin-top:14px;text-align:center;font-size:.86rem;color:var(--text-3)">
+          삭제(숨김)한 노선 <span id="hiddenCount"></span>개 —
+          <a href="#" id="restoreLink" style="color:var(--blue-500);font-weight:600">모두 복원</a>
+        </p>
       </div>
 
       <p class="data-note">
-        가격은 <strong>Google Flights(SerpApi)</strong>에서 매일 자동 수집한 <strong>1인당</strong> 기준입니다.
-        감시할 노선은 <code>data/routes.json</code>에서 관리합니다.
+        가격은 <strong>Google Flights(SerpApi)</strong> 기준 <strong>1인당</strong> 가격입니다.
+        '재검색'은 페이지 이동 없이 최신 가격으로 갱신합니다.
+        삭제는 화면에서 숨기며, 수집까지 중단하려면 <code>data/routes.json</code>에서 제거하세요.
       </p>
     </div>
   </main>
@@ -42,54 +45,75 @@
   <script src="js/data.js"></script>
   <script src="js/chart.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/api.js"></script>
   <script>
   (async function () {
     injectHeader("watch");
     await loadAirports();
     const $ = (id) => document.getElementById(id);
     const data = await FlightData.loadData();
-    const routes = data.routes || [];
+    const allRoutes = data.routes || [];
+    let hidden = FlightData.getHidden();
 
-    // 생성 시각
     if (data.generatedAt) {
       const d = new Date(data.generatedAt);
-      $("genInfo").textContent = `마지막 업데이트 ${d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })} · 출처 ${data.source || "Notion"}`;
+      $("genInfo").textContent = `마지막 수집 ${d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })} · ${data.source || ""}`;
     }
 
-    if (!routes.length) {
-      $("statsRow").style.display = "none";
-      $("emptyState").innerHTML = `
-        <div class="card empty">
-          ${ICONS.bell}
-          <h3>아직 관심 노선이 없어요</h3>
-          <p>Notion 데이터베이스에 노선을 추가하면 여기에 표시됩니다.</p>
-        </div>`;
-      return;
+    const visibleRoutes = () => allRoutes.filter((r) => !hidden.has(r.id));
+
+    /* ---------- 요약 통계 ---------- */
+    function renderStats() {
+      const routes = visibleRoutes();
+      if (!routes.length) { $("statsRow").innerHTML = ""; return; }
+      const allStats = routes.map((r) => ({ route: r, s: FlightData.routeStats(r) }));
+      const hits = allStats.filter((x) => x.s.hitTarget).length;
+      const dropping = allStats.filter((x) => x.s.deltaFromPrev < 0).length;
+      const bestDeal = allStats
+        .filter((x) => x.s.current != null && x.route.targetPrice)
+        .sort((a, b) => (a.s.current - a.route.targetPrice) - (b.s.current - b.route.targetPrice))[0];
+      const stats = [
+        { k: "모니터링 노선", v: routes.length + "개", d: `${dropping}개 노선 가격 하락중` },
+        { k: "목표가 도달", v: hits + "개", d: hits ? "지금 예매를 검토하세요" : "아직 없음" },
+        { k: "가장 근접한 노선", v: bestDeal ? bestDeal.route.name : "-",
+          d: bestDeal ? `현재 ${FlightData.won(bestDeal.s.current)}` : "" },
+      ];
+      $("statsRow").innerHTML = stats.map((st) =>
+        `<div class="card stat fade-in"><div class="k">${st.k}</div><div class="v">${st.v}</div><div class="d">${st.d}</div></div>`).join("");
     }
 
-    // 요약 통계 계산
-    const allStats = routes.map((r) => ({ route: r, s: FlightData.routeStats(r) }));
-    const hits = allStats.filter((x) => x.s.hitTarget).length;
-    const dropping = allStats.filter((x) => x.s.deltaFromPrev < 0).length;
-    const bestDeal = allStats
-      .filter((x) => x.s.current != null && x.route.targetPrice)
-      .sort((a, b) => (a.s.current - a.route.targetPrice) - (b.s.current - b.route.targetPrice))[0];
+    /* ---------- 노선 카드 ---------- */
+    function renderGrid() {
+      const routes = visibleRoutes();
+      const grid = $("routeGrid");
+      grid.innerHTML = "";
+      $("routeCount").textContent = `${routes.length}개 노선`;
 
-    const stats = [
-      { k: "모니터링 노선", v: routes.length + "개", d: `${dropping}개 노선 가격 하락중` },
-      { k: "목표가 도달", v: hits + "개", d: hits ? "지금 예매를 검토하세요" : "아직 없음" },
-      { k: "가장 근접한 노선", v: bestDeal ? bestDeal.route.name : "-",
-        d: bestDeal ? `현재 ${FlightData.won(bestDeal.s.current)}` : "" },
-    ];
-    $("statsRow").innerHTML = stats.map((st) =>
-      `<div class="card stat fade-in"><div class="k">${st.k}</div><div class="v">${st.v}</div><div class="d">${st.d}</div></div>`).join("");
+      if (!routes.length) {
+        $("emptyState").innerHTML = `
+          <div class="card empty">${ICONS.bell}
+            <h3>표시할 관심 노선이 없어요</h3>
+            <p>노선 추가는 <code>data/routes.json</code>에서, 숨긴 노선은 아래에서 복원할 수 있어요.</p></div>`;
+      } else {
+        $("emptyState").innerHTML = "";
+        routes.forEach((r) => grid.append(renderCard(r)));
+      }
+      // 숨김 복원 안내
+      $("hiddenInfo").style.display = hidden.size ? "" : "none";
+      $("hiddenCount").textContent = hidden.size;
+      renderStats();
+    }
 
-    // 노선 카드
-    $("routeCount").textContent = `${routes.length}개 노선`;
-    const grid = $("routeGrid");
-    allStats.forEach(({ route, s }) => grid.append(renderCard(route, s)));
+    $("restoreLink").addEventListener("click", (e) => {
+      e.preventDefault();
+      hidden = new Set();
+      FlightData.setHidden(hidden);
+      renderGrid();
+      toast("숨긴 노선을 모두 복원했어요");
+    });
 
-    function renderCard(route, s) {
+    function renderCard(route) {
+      const s = FlightData.routeStats(route);
       const card = document.createElement("div");
       card.className = "card route-card fade-in";
       const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
@@ -98,41 +122,88 @@
                   : s.hitTarget ? '<span class="badge badge-hit">🎯 목표가 도달</span>'
                   : '<span class="badge badge-active">모니터링중</span>';
       const sig = FlightData.buySignal(s, route);
+      const liveTag = route._liveTs
+        ? `<span class="live-tag">· ${Math.max(1, Math.round((Date.now() - route._liveTs) / 60000))}분 전 갱신</span>` : "";
+
       card.innerHTML = `
         <div class="rc-top">
           <div>
             <div class="route-path"><span>${route.origin}</span>
               <span class="plane">${ICONS.plane}</span><span>${route.destination}</span></div>
             <div class="route-sub">${route.name} · ${FlightData.shortDate(route.departDate)}${route.returnDate ? "~" + FlightData.shortDate(route.returnDate) : ""} · 성인 ${route.passengers || 1}</div>
-          </div>${badge}
+          </div>
+          <div class="rc-actions">${badge}
+            <button class="icon-mini rc-del" title="모니터링에서 삭제">${ICONS.trash}</button>
+          </div>
         </div>
         <div class="price-row">
           <span class="price-now">${FlightData.won(s.current)}</span>
           <span style="font-size:.72rem;color:var(--text-3);font-weight:700">1인당</span>
           ${s.deltaFromPrev ? `<span class="price-delta ${deltaCls}">${deltaIco}${FlightData.won(Math.abs(s.deltaFromPrev))}</span>` : ""}
         </div>
-        <div class="route-sub" style="color:var(--${sig.tone === 'down' ? 'down' : sig.tone === 'up' ? 'up' : 'text-2'})">${sig.text}</div>
+        <div class="route-sub" style="color:var(--${sig.tone === 'down' ? 'down' : sig.tone === 'up' ? 'up' : 'text-2'})">${sig.text} ${liveTag}</div>
         <div class="sparkholder"></div>
         <div class="target-line">${ICONS.target} 목표 ${FlightData.won(route.targetPrice)} · 최저 ${FlightData.won(s.min)}</div>
         <div class="progress"><span style="width:${s.progress}%"></span></div>
         <div class="rc-foot">
           <a class="btn btn-ghost" href="detail.html?id=${encodeURIComponent(route.id)}">${ICONS.chart} 추이</a>
-          <button class="btn btn-primary rc-search">${ICONS.search} 재검색</button>
+          <button class="btn btn-primary rc-refresh">${ICONS.refresh} 재검색</button>
         </div>
-        <button class="btn btn-accent rc-book" style="width:100%;justify-content:center">${ICONS.external} ${DeepLink.BOOKING_PROVIDER.label}에서 예약하기</button>`;
+        <button class="btn btn-accent rc-book" style="width:100%;justify-content:center">${ICONS.external} 네이버항공권에서 예약하기</button>
+        <div class="site-links rc-sites" style="margin-top:2px"></div>`;
+
       card.querySelector(".sparkholder").append(
         Chart.sparkline(s.prices.map((p) => p.price), { color: s.hitTarget ? "var(--down)" : "var(--blue-500)" }));
+
       const q = DeepLink.routeToQuery(route);
-      card.querySelector(".rc-search").addEventListener("click", () => {
-        openLinks(DeepLink.PROVIDERS.map((p) => p.build(q)), { background: true });
-        toast(`✈️ ${route.name} 전체 사이트 재검색 중 (백그라운드 탭)`);
+
+      // 삭제 (화면에서 숨김)
+      card.querySelector(".rc-del").addEventListener("click", () => {
+        if (!confirm(`'${route.name}' 노선을 모니터링 목록에서 삭제할까요?\n(화면에서 숨겨지며, 아래 '복원'으로 되돌릴 수 있어요)`)) return;
+        hidden.add(route.id);
+        FlightData.setHidden(hidden);
+        renderGrid();
+        toast(`🗑 ${route.name} 삭제됨 — 수집까지 멈추려면 routes.json에서 제거하세요`);
       });
+
+      // 재검색 = 페이지 이동 없이 정보만 최신화
+      const refreshBtn = card.querySelector(".rc-refresh");
+      refreshBtn.addEventListener("click", async () => {
+        if (!AirApi.isConfigured()) {
+          toast("실시간 갱신은 검색 페이지의 ⚙️ 실시간 검색 설정 후 사용할 수 있어요");
+          return;
+        }
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = ICONS.refresh + " 갱신 중…";
+        try {
+          const live = await AirApi.searchLive(q);
+          AirApi.saveLive(route.id, live);
+          FlightData.applyLive(route, { ts: Date.now(), date: AirApi.kstToday(),
+            cheapest: live.cheapest, offers: live.offers, insights: live.insights });
+          card.replaceWith(renderCard(route));   // 카드만 다시 그림
+          renderStats();
+          toast(`✓ ${route.name} 최신 가격으로 갱신됐어요`);
+        } catch (e) {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = ICONS.refresh + " 재검색";
+          toast("갱신 실패: " + e.message);
+        }
+      });
+
+      // 예약
       card.querySelector(".rc-book").addEventListener("click", () => {
-        openTab(DeepLink.bookingLink(q), false);   // 예약은 바로 앞 탭으로
+        openTab(DeepLink.bookingLink(q), false);
         toast(`🎫 ${route.name} 예약 페이지로 이동`);
       });
+
+      // 외부 사이트 개별 바로가기
+      renderSiteButtons(card.querySelector(".rc-sites"), q);
+      card.querySelectorAll(".rc-sites .mini-btn").forEach((b) => { b.style.padding = "7px 11px"; b.style.fontSize = ".78rem"; });
+
       return card;
     }
+
+    renderGrid();
   })();
   </script>
 </body>
