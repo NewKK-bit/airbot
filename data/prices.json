@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-07-16T09:00:00Z",
+  "source": "sample",
+  "currency": "KRW",
+  "routes": [
+    {
+      "id": "icn-nrt-2026-09",
+      "name": "서울 → 도쿄",
+      "origin": "ICN",
+      "destination": "NRT",
+      "departDate": "2026-09-10",
+      "returnDate": "2026-09-17",
+      "tripType": "round",
+      "passengers": 1,
+      "direct": true,
+      "airlines": ["대한항공", "진에어"],
+      "targetPrice": 350000,
+      "currency": "KRW",
+      "active": true,
+      "memo": "추석 연휴 직전, 목표가 도달 시 즉시 예매",
+      "prices": [
+        { "date": "2026-06-01", "price": 452000, "source": "Skyscanner" },
+        { "date": "2026-06-10", "price": 438000, "source": "Skyscanner" },
+        { "date": "2026-06-20", "price": 465000, "source": "Google Flights" },
+        { "date": "2026-06-30", "price": 421000, "source": "Skyscanner" },
+        { "date": "2026-07-08", "price": 389000, "source": "네이버항공권" },
+        { "date": "2026-07-14", "price": 342000, "source": "Skyscanner" }
+      ]
+    },
+    {
+      "id": "icn-kix-2026-10",
+      "name": "서울 → 오사카",
+      "origin": "ICN",
+      "destination": "KIX",
+      "departDate": "2026-10-03",
+      "returnDate": "2026-10-06",
+      "tripType": "round",
+      "passengers": 2,
+      "direct": true,
+      "airlines": ["제주항공", "에어부산"],
+      "targetPrice": 300000,
+      "currency": "KRW",
+      "active": true,
+      "memo": "개천절 연휴 2인",
+      "prices": [
+        { "date": "2026-06-05", "price": 318000, "source": "Skyscanner" },
+        { "date": "2026-06-18", "price": 305000, "source": "네이버항공권" },
+        { "date": "2026-07-01", "price": 329000, "source": "Google Flights" },
+        { "date": "2026-07-12", "price": 312000, "source": "Skyscanner" }
+      ]
+    },
+    {
+      "id": "icn-dad-2026-11",
+      "name": "서울 → 다낭",
+      "origin": "ICN",
+      "destination": "DAD",
+      "departDate": "2026-11-15",
+      "returnDate": "2026-11-20",
+      "tripType": "round",
+      "passengers": 2,
+      "direct": true,
+      "airlines": ["베트남항공", "비엣젯"],
+      "targetPrice": 400000,
+      "currency": "KRW",
+      "active": true,
+      "memo": "가을 휴가",
+      "prices": [
+        { "date": "2026-06-02", "price": 512000, "source": "Skyscanner" },
+        { "date": "2026-06-15", "price": 498000, "source": "Skyscanner" },
+        { "date": "2026-06-28", "price": 476000, "source": "Google Flights" },
+        { "date": "2026-07-10", "price": 455000, "source": "네이버항공권" }
+      ]
+    }
+  ]
+}

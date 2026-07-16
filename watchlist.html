@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모니터링 — AirBot</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main>
+    <div class="container">
+      <div class="section" style="margin-top:28px">
+        <div class="section-head">
+          <div>
+            <h2>가격 모니터링 대시보드</h2>
+            <div class="sub" id="genInfo">관심 노선의 가격 추이를 한눈에</div>
+          </div>
+        </div>
+
+        <!-- 요약 통계 -->
+        <div class="stats-row" id="statsRow"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h2>관심 노선</h2>
+          <span class="sub" id="routeCount"></span>
+        </div>
+        <div class="route-grid" id="routeGrid"></div>
+        <div id="emptyState"></div>
+      </div>
+
+      <p class="data-note">
+        가격 데이터는 <strong>Notion</strong>에 기록한 관측값을 GitHub Actions가 동기화해 보여줍니다.
+        새 가격을 추가하려면 Notion에서 직접 입력하세요.
+      </p>
+    </div>
+  </main>
+
+  <script src="js/deeplink.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+  (async function () {
+    injectHeader("watch");
+    await loadAirports();
+    const $ = (id) => document.getElementById(id);
+    const data = await FlightData.loadData();
+    const routes = data.routes || [];
+
+    // 생성 시각
+    if (data.generatedAt) {
+      const d = new Date(data.generatedAt);
+      $("genInfo").textContent = `마지막 업데이트 ${d.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })} · 출처 ${data.source || "Notion"}`;
+    }
+
+    if (!routes.length) {
+      $("statsRow").style.display = "none";
+      $("emptyState").innerHTML = `
+        <div class="card empty">
+          ${ICONS.bell}
+          <h3>아직 관심 노선이 없어요</h3>
+          <p>Notion 데이터베이스에 노선을 추가하면 여기에 표시됩니다.</p>
+        </div>`;
+      return;
+    }
+
+    // 요약 통계 계산
+    const allStats = routes.map((r) => ({ route: r, s: FlightData.routeStats(r) }));
+    const hits = allStats.filter((x) => x.s.hitTarget).length;
+    const dropping = allStats.filter((x) => x.s.deltaFromPrev < 0).length;
+    const bestDeal = allStats
+      .filter((x) => x.s.current != null && x.route.targetPrice)
+      .sort((a, b) => (a.s.current - a.route.targetPrice) - (b.s.current - b.route.targetPrice))[0];
+
+    const stats = [
+      { k: "모니터링 노선", v: routes.length + "개", d: `${dropping}개 노선 가격 하락중` },
+      { k: "목표가 도달", v: hits + "개", d: hits ? "지금 예매를 검토하세요" : "아직 없음" },
+      { k: "가장 근접한 노선", v: bestDeal ? bestDeal.route.name : "-",
+        d: bestDeal ? `현재 ${FlightData.won(bestDeal.s.current)}` : "" },
+    ];
+    $("statsRow").innerHTML = stats.map((st) =>
+      `<div class="card stat fade-in"><div class="k">${st.k}</div><div class="v">${st.v}</div><div class="d">${st.d}</div></div>`).join("");
+
+    // 노선 카드
+    $("routeCount").textContent = `${routes.length}개 노선`;
+    const grid = $("routeGrid");
+    allStats.forEach(({ route, s }) => grid.append(renderCard(route, s)));
+
+    function renderCard(route, s) {
+      const card = document.createElement("div");
+      card.className = "card route-card fade-in";
+      const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
+      const deltaIco = s.deltaFromPrev < 0 ? ICONS.down : s.deltaFromPrev > 0 ? ICONS.up : "";
+      const badge = route.active === false ? '<span class="badge badge-off">비활성</span>'
+                  : s.hitTarget ? '<span class="badge badge-hit">🎯 목표가 도달</span>'
+                  : '<span class="badge badge-active">모니터링중</span>';
+      const sig = FlightData.buySignal(s, route);
+      card.innerHTML = `
+        <div class="rc-top">
+          <div>
+            <div class="route-path"><span>${route.origin}</span>
+              <span class="plane">${ICONS.plane}</span><span>${route.destination}</span></div>
+            <div class="route-sub">${route.name} · ${FlightData.shortDate(route.departDate)}${route.returnDate ? "~" + FlightData.shortDate(route.returnDate) : ""} · 성인 ${route.passengers || 1}</div>
+          </div>${badge}
+        </div>
+        <div class="price-row">
+          <span class="price-now">${FlightData.won(s.current)}</span>
+          ${s.deltaFromPrev ? `<span class="price-delta ${deltaCls}">${deltaIco}${FlightData.won(Math.abs(s.deltaFromPrev))}</span>` : ""}
+        </div>
+        <div class="route-sub" style="color:var(--${sig.tone === 'down' ? 'down' : sig.tone === 'up' ? 'up' : 'text-2'})">${sig.text}</div>
+        <div class="sparkholder"></div>
+        <div class="target-line">${ICONS.target} 목표 ${FlightData.won(route.targetPrice)} · 최저 ${FlightData.won(s.min)}</div>
+        <div class="progress"><span style="width:${s.progress}%"></span></div>
+        <div class="rc-foot">
+          <a class="btn btn-ghost" href="detail.html?id=${encodeURIComponent(route.id)}">${ICONS.chart} 추이</a>
+          <button class="btn btn-primary rc-search">${ICONS.search} 재검색</button>
+        </div>`;
+      card.querySelector(".sparkholder").append(
+        Chart.sparkline(s.prices.map((p) => p.price), { color: s.hitTarget ? "var(--down)" : "var(--blue-500)" }));
+      card.querySelector(".rc-search").addEventListener("click", () => {
+        const q = DeepLink.routeToQuery(route);
+        DeepLink.PROVIDERS.forEach((p, i) => setTimeout(() => window.open(p.build(q), "_blank", "noopener"), i * 120));
+        toast(`✈️ ${route.name} 재검색을 열었어요`);
+      });
+      return card;
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AirBot — 항공권 검색 & 모니터링</title>
+  <meta name="description" content="관심 노선을 등록하고 여러 항공권 사이트를 한 번에 검색하며 가격 추이를 지켜보는 개인용 항공권 대시보드">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <section class="hero">
+    <div class="container">
+      <h1>한 번의 검색, 모든 항공권 사이트</h1>
+      <p>조건을 입력하면 Skyscanner · Google Flights · 네이버 · 카약을 동시에 검색합니다. 관심 노선은 저장해 가격을 계속 지켜보세요.</p>
+    </div>
+  </section>
+
+  <main>
+    <div class="container">
+      <!-- 검색 패널 -->
+      <div class="card search-panel fade-in">
+        <div class="trip-toggle" id="tripToggle">
+          <button data-trip="round" class="active">왕복</button>
+          <button data-trip="oneway">편도</button>
+        </div>
+
+        <div class="search-grid">
+          <div class="field">
+            <label>출발지</label>
+            <input type="text" id="origin" placeholder="도시 · 공항코드" autocomplete="off">
+          </div>
+          <button class="swap-btn" id="swapBtn" title="출발/도착 교체" aria-label="교체"></button>
+          <div class="field">
+            <label>도착지</label>
+            <input type="text" id="destination" placeholder="도시 · 공항코드" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>가는 날</label>
+            <input type="date" id="departDate">
+          </div>
+          <div class="field" id="returnField">
+            <label>오는 날</label>
+            <input type="date" id="returnDate">
+          </div>
+        </div>
+
+        <div class="search-options">
+          <div class="field" style="max-width:120px">
+            <label>인원</label>
+            <select id="passengers">
+              <option value="1">성인 1명</option>
+              <option value="2">성인 2명</option>
+              <option value="3">성인 3명</option>
+              <option value="4">성인 4명</option>
+            </select>
+          </div>
+          <label class="checkbox"><input type="checkbox" id="direct"> 직항만 보기</label>
+        </div>
+
+        <div class="provider-select">
+          <div class="lbl">검색할 사이트</div>
+          <div class="provider-chips" id="providerChips"></div>
+        </div>
+
+        <div class="actions-row">
+          <button class="btn btn-primary" id="searchBtn"></button>
+        </div>
+      </div>
+
+      <!-- 관심 노선 미리보기 -->
+      <section class="section" id="watchPreview" style="display:none">
+        <div class="section-head">
+          <h2>내 관심 노선</h2>
+          <a class="section-head sub" href="watchlist.html" style="color:var(--blue-500);font-weight:700">모니터링 전체보기 →</a>
+        </div>
+        <div class="route-grid" id="previewGrid"></div>
+      </section>
+
+      <p class="data-note">
+        AirBot은 항공권을 직접 판매하지 않습니다. 검색은 각 항공권 사이트로 연결되며,
+        가격 기록은 <strong>Notion</strong>에 저장한 데이터를 읽어 시각화합니다.
+      </p>
+    </div>
+  </main>
+
+  <script src="js/deeplink.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+  (async function () {
+    injectHeader("search");
+    document.getElementById("swapBtn").innerHTML = ICONS.swap;
+    document.getElementById("searchBtn").innerHTML = ICONS.search + " 전체 사이트에서 검색";
+    await loadAirports();
+
+    const $ = (id) => document.getElementById(id);
+    const originI = $("origin"), destI = $("destination");
+    attachAutocomplete(originI);
+    attachAutocomplete(destI);
+
+    // 기본 날짜: 30일 뒤 / 37일 뒤
+    const today = new Date();
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const plus = (n) => { const d = new Date(today); d.setDate(d.getDate() + n); return d; };
+    $("departDate").value = iso(plus(30));
+    $("returnDate").value = iso(plus(37));
+    $("departDate").min = iso(today);
+    $("returnDate").min = iso(today);
+
+    // 왕복/편도
+    let tripType = "round";
+    $("tripToggle").addEventListener("click", (e) => {
+      const btn = e.target.closest("button"); if (!btn) return;
+      tripType = btn.dataset.trip;
+      $("tripToggle").querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
+      $("returnField").style.display = tripType === "oneway" ? "none" : "";
+    });
+
+    // 출발/도착 교체
+    $("swapBtn").addEventListener("click", () => {
+      [originI.value, destI.value] = [destI.value, originI.value];
+      [originI.dataset.code, destI.dataset.code] = [destI.dataset.code || "", originI.dataset.code || ""];
+    });
+
+    // 사이트 선택 칩
+    const selected = new Set(DeepLink.PROVIDERS.map((p) => p.id));
+    const chipsWrap = $("providerChips");
+    DeepLink.PROVIDERS.forEach((p) => {
+      const chip = document.createElement("button");
+      chip.className = "chip on";
+      chip.style.background = p.color; chip.style.color = p.color;
+      chip.innerHTML = `<span class="dot"></span>${p.label}`;
+      const sync = () => {
+        const on = selected.has(p.id);
+        chip.classList.toggle("on", on);
+        chip.style.background = on ? p.color : "var(--surface)";
+        chip.style.color = on ? "#fff" : "var(--text-2)";
+      };
+      chip.addEventListener("click", () => { selected.has(p.id) ? selected.delete(p.id) : selected.add(p.id); sync(); });
+      chipsWrap.append(chip); sync();
+    });
+
+    // 검색 실행
+    $("searchBtn").addEventListener("click", () => {
+      const o = originI.dataset.code || originI.value.trim().toUpperCase();
+      const d = destI.dataset.code || destI.value.trim().toUpperCase();
+      if (!o || !d) return toast("출발지와 도착지를 입력해주세요");
+      if (o === d) return toast("출발지와 도착지가 같습니다");
+      if (!selected.size) return toast("검색할 사이트를 하나 이상 선택하세요");
+
+      const q = {
+        origin: o, destination: d,
+        departDate: $("departDate").value,
+        returnDate: tripType === "round" ? $("returnDate").value : undefined,
+        tripType, passengers: Number($("passengers").value), direct: $("direct").checked,
+      };
+      if (!q.departDate) return toast("가는 날을 선택하세요");
+
+      const providers = DeepLink.PROVIDERS.filter((p) => selected.has(p.id));
+      providers.forEach((p, i) => setTimeout(() => window.open(p.build(q), "_blank", "noopener"), i * 120));
+      toast(`✈️ ${providers.length}개 사이트에서 검색을 열었어요`);
+    });
+
+    // 관심 노선 미리보기 (상위 3개)
+    const data = await FlightData.loadData();
+    const active = (data.routes || []).filter((r) => r.active !== false).slice(0, 3);
+    if (active.length) {
+      $("watchPreview").style.display = "";
+      const grid = $("previewGrid");
+      active.forEach((r) => grid.append(renderRouteCard(r)));
+    }
+
+    function renderRouteCard(route) {
+      const s = FlightData.routeStats(route);
+      const card = document.createElement("div");
+      card.className = "card route-card fade-in";
+      const deltaCls = s.deltaFromPrev < 0 ? "delta-down" : s.deltaFromPrev > 0 ? "delta-up" : "";
+      const deltaIco = s.deltaFromPrev < 0 ? ICONS.down : s.deltaFromPrev > 0 ? ICONS.up : "";
+      const badge = s.hitTarget ? '<span class="badge badge-hit">🎯 목표가 도달</span>'
+                                : '<span class="badge badge-active">모니터링중</span>';
+      card.innerHTML = `
+        <div class="rc-top">
+          <div>
+            <div class="route-path"><span>${route.origin}</span>
+              <span class="plane">${ICONS.plane}</span><span>${route.destination}</span></div>
+            <div class="route-sub">${route.name} · ${FlightData.shortDate(route.departDate)}${route.returnDate ? "~" + FlightData.shortDate(route.returnDate) : ""}</div>
+          </div>${badge}
+        </div>
+        <div class="price-row">
+          <span class="price-now">${FlightData.won(s.current)}</span>
+          ${s.deltaFromPrev ? `<span class="price-delta ${deltaCls}">${deltaIco}${FlightData.won(Math.abs(s.deltaFromPrev))}</span>` : ""}
+        </div>
+        <div class="sparkholder"></div>
+        <div class="target-line">${ICONS.target} 목표 ${FlightData.won(route.targetPrice)}</div>
+        <div class="progress"><span style="width:${s.progress}%"></span></div>`;
+      card.querySelector(".sparkholder").append(
+        Chart.sparkline(s.prices.map((p) => p.price), { color: s.hitTarget ? "var(--down)" : "var(--blue-500)" }));
+      card.style.cursor = "pointer";
+      card.addEventListener("click", () => location.href = `detail.html?id=${encodeURIComponent(route.id)}`);
+      return card;
+    }
+  })();
+  </script>
+</body>
+</html>
